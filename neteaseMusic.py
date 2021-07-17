@@ -1,19 +1,24 @@
-import qrcode
 import time
 import urllib.parse
 from base64 import b64encode
-from typing import List, Union
+from typing import Dict, List, Union
+
+# NeteaseMusicUser.login() need create QR Code
+import qrcode
+# Must install this package to send the web requests
+import requests
+# Must install this package to compiled the web page
+from bs4 import BeautifulSoup
+# Must install this package to encrypt the message
+from Crypto.Cipher import AES
+# NeteaseMusicSong.download_with_metadata() need write the metadata(ID3)
 from mutagen import id3
 
-import requests
-from bs4 import BeautifulSoup
-from Crypto.Cipher import AES
-
+# github.com/AwesomeCore/progress.py
 from progress import Progresser
-musicS="YOUR COOKIES"
+
 header = {"Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.67",
-          "Cookie": musicS}
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.67"}
 csrf_token = "238dcc46feb4e141800919ef1608b351"
 encSecKey = "a0eb942126f004306a718aaf9fdbd8050c6aee4683d5fddc7f2946f27dc0d51164396be851a00f927d3449cf61f240442273dc46cfac1e6c160c8c85b78ff56034198914eb0a23ecbcadb493dc354c27d026a874dcb982f41e0077635b5c3fc9337e7fee2e0b30e84052d95e9fdc8ded40a00da010b947d9a6925fb6611a08c8"
 URL_SONG_DETAIL = "http://music.163.com/weapi/song/detail"
@@ -34,7 +39,10 @@ FILE_PATH = "NeteaseMusic.txt"
 
 
 class NeteaseMusicConfig:
-    def __init__(self, nickName, id, MusicU, csrf, nmtid) -> None:
+    def __init__(self, isDefault: bool, nickName, id, MusicU, csrf, nmtid, lastSignDate=-1) -> None:
+        self.isDefault = isDefault
+        self.isDefaultN = 1 if isDefault else 0
+        self.lastSignDate = lastSignDate
         self.nickName = nickName
         self.id = id
         self.MusicU = MusicU
@@ -44,8 +52,33 @@ class NeteaseMusicConfig:
     def __str__(self) -> str:
         return str(self.toDict())
 
+    def updateLastSignDate(self, date: int):
+        with open(FILE_PATH, "a+") as f:
+            f.seek(0)
+            d = eval(f.read())
+            i = [j["id"] for j in d]
+            if self.id not in i:
+                raise ValueError("请先登录")
+            v = d[i.index(self.id)]
+            v["lastSignDate"] = date
+            self.lastSignDate = date
+
     def toDict(self) -> dict:
-        return {"id": self.id, "nickname": self.nickName, "lastSignDate": -1, "MUSIC_U": self.MusicU, "NMTID": self.nmtid, "__csrf": self.csrf}
+        return {"isDefault": self.isDefaultN,
+                "id": self.id,
+                "nickName": self.nickName,
+                "lastSignDate": self.lastSignDate,
+                "MUSIC_U": self.MusicU,
+                "NMTID": self.nmtid,
+                "__csrf": self.csrf}
+
+    def toCookie(self) -> str:
+        return f"MUSIC_U={self.MusicU}; NMTID={self.nmtid}; __csrf={self.csrf}"
+
+    def toHeader(self) -> dict:
+        h = header.copy()
+        h["Cookie"] = self.toCookie()
+        return h
 
     def login(self):
         with open(FILE_PATH, "a+") as f:
@@ -54,13 +87,40 @@ class NeteaseMusicConfig:
             if m == "":
                 f.write(str([self.toDict()]))
             else:
+                b = eval(m)
+                i = [j["id"] for j in b]
+                if self.id in i:
+                    print("用户已记录，无需登录")
+                    return
+                f.seek(0)
                 f.truncate()
-                f.write(eval(m).append(self.toDict()))
+                b.append(self.toDict())
+                f.write(str(b))
 
     @staticmethod
-    def get_all_config():
-        with open("NeteaseMusic.txt") as f:
-            f.read()
+    def createWithDict(d: List[Dict[str, str]]):
+        return NeteaseMusicConfig(d["isDefault"], d["nickName"], d["id"], d["MUSIC_U"], d["__csrf"], d["NMTID"])
+
+    @classmethod
+    def get_all_config(cls):
+        with open(FILE_PATH) as f:
+            d = eval(f.read())
+            return [cls.createWithDict(i) for i in d]
+
+    @classmethod
+    def get_config(cls, id: int):
+        d = cls.get_all_config()
+        i = [j.id for j in d]
+        if id not in i:
+            raise ValueError("请先登录")
+        return d[i.index(id)]
+
+    @staticmethod
+    def isLogin(id: int) -> bool:
+        with open(FILE_PATH) as f:
+            d = eval(f.read())
+            i = [j["id"] for j in d]
+            return id in i
 
 
 class NeteaseMusicMain:
@@ -82,10 +142,13 @@ class NeteaseMusicMain:
         return params
 
     @classmethod
-    def neteaseMusicPost(cls, url: str, content: str, containHeader=True) -> dict:
+    def neteaseMusicPost(cls, url: str, content: str, cookies=None) -> dict:
         m = cls.neteaseMusicEncrypt(content)
+        h = header.copy()
+        if cookies != None:
+            h["Cookie"] = cookies
         v = requests.post(
-            url, cls.join(m), headers=header if containHeader else None).json()
+            url, cls.join(m), headers=h).json()
         return v
 
     @staticmethod
@@ -220,10 +283,13 @@ class NeteaseMusicAlbum(NeteaseMusicWebLoader):
 
 class NeteaseMusicUser:
     def __init__(self, id: int) -> None:
+        self.isLogin: bool = NeteaseMusicConfig.isLogin(id)
+        self.config: NeteaseMusicConfig = NeteaseMusicConfig.get_config(id)
+        print(self.config.toCookie())
         self.id = id
         self.isMyself = id == SELF_USER_ID
         r = BeautifulSoup(requests.get(URL_USER_HOME %
-                                       id, headers=header).text, features="html.parser")
+                                       id, headers={"cookie": self.config.toCookie()}).text, features="html.parser")
         self.allListen = int(
             r.find("div", id="rHeader").h4.string.split("歌")[1][:-1])
         f = r.find("div", class_="name f-cb").find("a", hidefocus="true")
@@ -247,7 +313,7 @@ class NeteaseMusicUser:
         while True:
             t += 1
             q = NeteaseMusicMain.neteaseMusicPost(URL_USER_LOGIN, cc)
-            time.sleep(1)
+            time.sleep(0.5)
             print(q, "次数：", t)
             if q["code"] == 802:
                 break
@@ -258,20 +324,29 @@ class NeteaseMusicUser:
                 return
         w = requests.Session()
         while True:
+            t += 1
             q = NeteaseMusicMain.neteaseMusicEncrypt(cc)
-            time.sleep(1)
+            time.sleep(0.5)
             re = w.post(URL_USER_LOGIN, NeteaseMusicMain.join(q),
                         headers={"Content-Type": "application/x-www-form-urlencoded"}).json()
-            name = re["nickname"]
+            print(re, "次数：", t)
             if re["code"] == 803:
                 break
+            elif re["code"] == -460:
+                print("登录次数过多")
+                break
         print(w.cookies)
-        s = w.post(URL_USER_GET % w.cookies.get("__csrf"), NeteaseMusicMain.join(
-            NeteaseMusicMain.neteaseMusicEncrypt(""))).json()
+        print(URL_USER_GET % w.cookies.get("__csrf"))
+        csrf = w.cookies.get("__csrf")
+        s = w.post(URL_USER_GET % csrf, NeteaseMusicMain.join(
+            NeteaseMusicMain.neteaseMusicEncrypt(str({"csrf_token": csrf})))).json()
+        print(s)
         id = s["profile"]["userId"]
-        co = {"id": id, "nickname": name, "lastSignDate": -1, "MUSIC_U": w.cookies.get(
-            "MUSIC_C"), "NMTID": w.cookies.get("NMTID"), "__csrf": w.cookies.get("__csrf")}
-
+        name = s["profile"]["nickname"]
+        co = {"id": id, "nickName": name, "lastSignDate": -1, "MUSIC_U": w.cookies.get(
+            "MUSIC_U"), "NMTID": w.cookies.get("NMTID"), "__csrf": w.cookies.get("__csrf")}
+        co["isDefault"] = True
+        NeteaseMusicConfig.login(NeteaseMusicConfig.createWithDict(co))
         return NeteaseMusicUser(id)
 
     def sign(self):
@@ -303,7 +378,7 @@ class NeteaseMusicRecord:
     def get_user_record(id: int, isPost: bool = True):
         c = str({"limit": "1000", "offset": "0", "total": "true",
                  "type": "-1", "uid": str(id), "csrf_token": csrf_token})
-        return NeteaseMusicMain.neteaseMusicPost(URL_USER_RECORD, c) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
+        return NeteaseMusicMain.neteaseMusicPost(URL_USER_RECORD, c, NeteaseMusicConfig.get_config(id).toCookie()) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
     #######################################
 
     def alltime_week(self):
@@ -397,16 +472,10 @@ class NeteaseMusicRecord:
                 f"{i+1}: {song['song']['name']} || T:{second_format(song['song']['dt']//1000)} || C:{song['playCount']} || A:{second_format(time)}")
 
 
-'''
-a = NeteaseMusicUser(SELF_USER_ID)
-a.sign()
+a = NeteaseMusicUser.login()
+# a.sign()
 a = a.record
 a.analyse_week()
 a.analyse_all()
 a.alltime_week()
-a.alltime_all()'''
-NeteaseMusicUser.login()
-# NeteaseMusicSong(1480344409).download_with_metadata("D:/aaa.mp3")
-# NeteaseMusicPlaylist(6765943151).download_all("D:/a")
-# a.alltime_all()
-# NeteaseMusicAlbum(82321807).download_all("D:/a")
+a.alltime_all()
