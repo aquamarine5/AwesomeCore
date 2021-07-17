@@ -21,5 +21,5 @@
 - 仅用于`Webapi.__init__() -> "trs"`中，不推荐使用
 ### v2
 - `translation.translate()`可以翻译，`engine`可选'g'（google）和'b'（baidu）
-- `translateion.translationLanguage`是翻译语种
-- `translateion.translate_crazy()`是翻译生草机，推荐配合谷歌翻译引擎食用
+- `translation.translationLanguage`是翻译语种
+- `translation.translate_crazy()`是翻译生草机，推荐配合谷歌翻译引擎食用
