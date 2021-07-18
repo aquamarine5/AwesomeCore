@@ -23,3 +23,12 @@
 - `translation.translate()`可以翻译，`engine`可选'g'（google）和'b'（baidu）
 - `translation.translationLanguage`是翻译语种
 - `translation.translate_crazy()`是翻译生草机，推荐配合谷歌翻译引擎食用
+## CommandCompiler
+- 可用`commandCompiler.CommandCompiler()`新建
+- 如```python
+CommandCompiler({
+    0:{
+      "a":CommandFunction(a,CommandArgument())},
+    1:{
+      "b":CommandFunction(b,CommandArgument([int]))}})```
+- `commandCompiler.EasyCommandCompiler()`可以更快编写，替代了`CommandFunction`和`CommandArgument`
