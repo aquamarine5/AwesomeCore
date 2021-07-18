@@ -25,7 +25,7 @@
 - `translation.translate_crazy()`是翻译生草机，推荐配合谷歌翻译引擎食用
 ## CommandCompiler
 - 可用`commandCompiler.CommandCompiler()`新建
-- 如```python
+- 如```
 CommandCompiler({
     0:{
       "a":CommandFunction(a,CommandArgument())},
