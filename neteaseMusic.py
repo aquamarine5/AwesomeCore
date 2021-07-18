@@ -1,4 +1,5 @@
 
+import json
 import time
 import urllib.parse
 from base64 import b64encode
@@ -16,6 +17,7 @@ from Crypto.Cipher import AES
 # NeteaseMusicSong.download_with_metadata() need write the metadata(ID3)
 from mutagen import id3
 
+# github.com/AwesomeCore/commandCompiler.py
 from commandCompiler import EasyCommandCompiler
 # github.com/AwesomeCore/progress.py
 from progress import Progresser
@@ -80,7 +82,15 @@ class NeteaseMusicConfig:
             super().__init__(*args)
 
         def __str__(self) -> str:
-            return f"请先登录 使用login命令登录"
+            return f"请先登录 使用account-login命令登录"
+
+    class ConfigNotFoundError(BaseException):
+        def __init__(self, id: int, *args: object) -> None:
+            self.id = id
+            super().__init__(*args)
+
+        def __str__(self) -> str:
+            return f"找不到id为{self.id}的用户"
 
     def __init__(self, isDefault: bool, nickName, id, MusicU, csrf, nmtid, lastSignDate=-1) -> None:
         self.isDefault = isDefault
@@ -105,6 +115,9 @@ class NeteaseMusicConfig:
             v = d[i.index(self.id)]
             v["lastSignDate"] = date
             self.lastSignDate = date
+            f.seek(0)
+            f.truncate()
+            f.write(str(d))
 
     def toDict(self) -> dict:
         return {"isDefault": self.isDefaultN,
@@ -148,12 +161,20 @@ class NeteaseMusicConfig:
         with open(FILE_PATH, "a+") as f:
             f.seek(0)
             r = f.read()
-            if r == "":
+            if r == "" or r == "[]":
                 raise NeteaseMusicConfig.NotLoginError()
             m: list = eval(r)
             if len(m) == 0:
                 return NeteaseMusicConfig.NotLoginError()
             return NeteaseMusicConfig.createWithDict(m[0])
+
+    @classmethod
+    def get_default_config_cc(cls):
+        try:
+            c = cls.get_default_config()
+            print(f"当前登录：{c.nickName}({c.id}) cookie: {c.toCookie()}")
+        except NeteaseMusicConfig.NotLoginError:
+            print("没有登录默认账号")
 
     @staticmethod
     def createWithDict(d: List[Dict[str, str]]):
@@ -161,9 +182,65 @@ class NeteaseMusicConfig:
 
     @classmethod
     def get_all_config(cls):
-        with open(FILE_PATH) as f:
-            d = eval(f.read())
+        with open(FILE_PATH, "a+") as f:
+            f.seek(0)
+            r = f.read()
+            if r == "" or r == "[]":
+                return []
+            d = eval(r)
             return [cls.createWithDict(i) for i in d]
+
+    @classmethod
+    def get_all_config_cc(cls):
+        r = cls.get_all_config()
+        print("存储的所有账户：")
+        if r == []:
+            print("没有任何账户")
+        for i in range(len(r)):
+            c = r[i]
+            print(i+1, "●" if c.isDefault else "○",
+                  f"{c.nickName}({c.id}) cookie:", c.toCookie())
+
+    @staticmethod
+    def change_default_config(id: int):
+        with open(FILE_PATH, "a+") as f:
+            f.seek(0)
+            e: list = eval(f.read())
+            i = [j["id"] for j in e]
+            if len(e) == 0:
+                raise NeteaseMusicConfig.ConfigNotFoundError(id)
+            e[0]["isDefault"] = 0
+            if id not in i:
+                raise NeteaseMusicConfig.ConfigNotFoundError(id)
+            c = e[i.index(id)]
+            e.remove(c)
+            c["isDefault"] = 1
+            e.insert(0, c)
+            f.seek(0)
+            f.truncate()
+            f.write(str(e))
+            print(f"成功设置 {id} 为新默认用户")
+
+    @staticmethod
+    def delete_config(id: int):
+        with open(FILE_PATH, "a+") as f:
+            f.seek(0)
+            r = f.read()
+            if r == "" or r == "[]":
+                raise NeteaseMusicConfig.ConfigNotFoundError(id)
+            e: list = eval(r)
+            i = [j["id"] for j in e]
+            if id not in i:
+                raise NeteaseMusicConfig.ConfigNotFoundError(id)
+            d = i.index(id)
+            c = e[d]
+            if c["isDefault"] == 1:
+                e[d+1]["isDefault"] = 1
+            e.remove(c)
+            f.seek(0)
+            f.truncate()
+            f.write(str(e))
+            print(f"成功删除id为 {id} 的用户")
 
     @classmethod
     def get_config(cls, id: int):
@@ -175,8 +252,12 @@ class NeteaseMusicConfig:
 
     @staticmethod
     def isLogin(id: int) -> bool:
-        with open(FILE_PATH) as f:
-            d = eval(f.read())
+        with open(FILE_PATH, "a+") as f:
+            f.seek(0)
+            r = f.read()
+            if r == "" or r == "[]":
+                return False
+            d = eval(r)
             i = [j["id"] for j in d]
             return id in i
 
@@ -331,10 +412,14 @@ class NeteaseMusicUser:
         self.isLogin: bool = NeteaseMusicConfig.isLogin(id)
         self.config: NeteaseMusicConfig = NeteaseMusicConfig.get_config(
             id) if config == None else config
-        print(f"当前登录：{self.config.nickName}({self.config.id}) cookie: {self.config.toCookie()}")
         self.id = id
         r = BeautifulSoup(requests.get(URL_USER_HOME %
                                        id, headers={"cookie": self.config.toCookie()}).text, features="html.parser")
+        if r.find("div", class_="n-for404") != None:
+            print(f"404 id为{self.id}账户不存在")
+            self.allListen = -1
+            self.record = NeteaseMusicRecord(self)
+            return
         self.allListen = int(
             r.find("div", id="rHeader").h4.string.split("歌")[1][:-1])
         f = r.find("div", class_="name f-cb").find("a", hidefocus="true")
@@ -353,6 +438,7 @@ class NeteaseMusicUser:
         key = r["unikey"]
         print("key:", key)
         print("url:", URL_USER_QRCODE % key)
+        print("请用网易云音乐APP扫描二维码授权登录")
         cc = str({"csrf_token": "", "key": key, "type": "1"})
         q = qrcode.QRCode()
         q.add_data(URL_USER_QRCODE % key)
@@ -363,7 +449,7 @@ class NeteaseMusicUser:
             t += 1
             q = NeteaseMusicMain.neteaseMusicPost(URL_USER_LOGIN, cc)
             time.sleep(0.5)
-            print(q, "次数：", t)
+            print("次数：", t, q)
             if q["code"] == 802:
                 break
             elif q["code"] == 800:
@@ -378,58 +464,65 @@ class NeteaseMusicUser:
             time.sleep(0.5)
             re = w.post(URL_USER_LOGIN, NeteaseMusicMain.join(q),
                         headers={"Content-Type": "application/x-www-form-urlencoded"}).json()
-            print(re, "次数：", t)
+            print("次数：", t, re)
             if re["code"] == 803:
                 break
             elif re["code"] == -460:
                 print("登录次数过多")
                 break
         csrf = w.cookies.get("__csrf")
-        print(w.cookies)
         s = w.post(URL_USER_GET % csrf, NeteaseMusicMain.join(
-            NeteaseMusicMain.neteaseMusicEncrypt(str({"csrf_token": csrf})))).json()
-        print(s)
+            NeteaseMusicMain.neteaseMusicEncrypt(str({"csrf_token": csrf}))), headers=header).json()
         id = s["profile"]["userId"]
         name = s["profile"]["nickname"]
         co = {"id": id, "nickName": name, "lastSignDate": -1, "MUSIC_U": w.cookies.get(
-            "MUSIC_U"), "NMTID": w.cookies.get("NMTID"), "__csrf": w.cookies.get("__csrf")}
-        co["isDefault"] = True
-        NeteaseMusicConfig.login(NeteaseMusicConfig.createWithDict(co))
+            "MUSIC_U"), "NMTID": w.cookies.get("NMTID"), "__csrf": csrf}
+        co["isDefault"] = NeteaseMusicConfig.get_all_config() == []
+        f = NeteaseMusicConfig.createWithDict(co)
+        print(f"要登录的账号是：{f.nickName}({f.id}) cookie: {f.toCookie()}")
+        f.login()
+        print("登录成功")
+        print("已设置为默认账户" if co["isDefault"] else "")
         return NeteaseMusicUser(id)
+
+    @staticmethod
+    def sign_cc():
+        NeteaseMusicUser.createWithConfig(
+            NeteaseMusicConfig.get_default_config()).sign()
 
     def sign(self):
         if not self.isLogin:
+            raise NeteaseMusicConfig.NotLoginError()
+        v=self.config
+        t = time.strftime("%Y%m%d", time.localtime())
+        if t == v.lastSignDate:
+            print("已经签到了")
             return
-        with open("NeteaseMusic.txt", "ab+") as f:
-            t = time.strftime("%Y%m%d", time.localtime()).encode('utf-8')
-            f.seek(-8, 2)
-            if t == f.read(8):
-                print("已经签到了")
-                return
-            else:
-                f.seek(0)
-                f.write(t)
         c = str({"type": 1})
         r = NeteaseMusicMain.neteaseMusicPost(URL_USER_SIGN, c)
+        v.updateLastSignDate(t)
         print("签到成功" if r["code"] == 200 else f"签到失败，详情：{r}")
 
 
 class NeteaseMusicRecord:
     def __init__(self, id: NeteaseMusicUser) -> None:
-        self.data = NeteaseMusicRecord.get_user_record(id.id)
+        self.id = id
+        self.data = self.get_user_record(id.id)
         self.allListen = id.allListen
         self.hasPermission = self.data["code"] == 200
         self.allData = self.data["allData"] if self.hasPermission else None
         self.weekData = self.data["weekData"] if self.hasPermission else None
 
-    @staticmethod
-    def get_user_record(id: int, isPost: bool = True):
+    def get_user_record(self, id: int, isPost: bool = True):
         c = str({"limit": "1000", "offset": "0", "total": "true",
                  "type": "-1", "uid": str(id), "csrf_token": csrf_token})
-        return NeteaseMusicMain.neteaseMusicPost(URL_USER_RECORD, c, NeteaseMusicConfig.get_config(id).toCookie()) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
+        return NeteaseMusicMain.neteaseMusicPost(URL_USER_RECORD, c, self.id.config.toCookie()) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
     #######################################
 
-    def alltime_cc(self, i: str):
+    @staticmethod
+    def alltime_cc(i: str):
+        self = NeteaseMusicUser.createWithConfig(
+            NeteaseMusicConfig.get_default_config()).record
         if i == "all":
             self.alltime_all()
         elif i == "week":
@@ -485,13 +578,19 @@ class NeteaseMusicRecord:
         return alt
     #######################################
 
-    def analyse_complex(self):
+    @staticmethod
+    def analyse_complex():
+        self = NeteaseMusicUser.createWithConfig(
+            NeteaseMusicConfig.get_default_config()).record
         self.analyse_week()
         self.analyse_all()
         self.alltime_week()
         self.alltime_all()
 
-    def analyse_cc(self, i: str):
+    @staticmethod
+    def analyse_cc(i: str):
+        self = NeteaseMusicUser.createWithConfig(
+            NeteaseMusicConfig.get_default_config()).record
         if i == "all":
             self.analyse_all()
         elif i == "week":
@@ -538,17 +637,20 @@ class NeteaseMusicRecord:
                 f"{i+1}: {song['song']['name']} || T:{second_format(song['song']['dt']//1000)} || C:{song['playCount']} || A:{second_format(time)}")
 
 
-default = NeteaseMusicUser.createWithConfig(
-    NeteaseMusicConfig.get_default_config())
 cc = EasyCommandCompiler({
     0: {
         "login": (NeteaseMusicUser.login, []),
-        "sign": (default.sign, []),
-        "analyse": (default.record.analyse_complex, [])
+        "sign": (NeteaseMusicUser.sign_cc, []),
+        "analyse": (NeteaseMusicRecord.analyse_complex, []),
+        "account-login": (NeteaseMusicUser.login, []),
+        "account-all": (NeteaseMusicConfig.get_all_config_cc, []),
+        "account-default": (NeteaseMusicConfig.get_default_config_cc, [])
     },
     1: {
-        "analyse": (default.record.analyse_cc, [str]),
-        "alltime": (default.record.alltime_cc, [str]),
+        "account-change": (NeteaseMusicConfig.change_default_config, [int]),
+        "account-delete": (NeteaseMusicConfig.delete_config, [int]),
+        "analyse": (NeteaseMusicRecord.analyse_cc, [str]),
+        "alltime": (NeteaseMusicRecord.alltime_cc, [str]),
         "download": (NeteaseMusicSong.download_cc, [int]),
         "download-metadata": (NeteaseMusicSong.download_metadata_cc, [int]),
         "download-album": (NeteaseMusicAlbum.download_all_cc, [int]),
@@ -562,9 +664,18 @@ cc = EasyCommandCompiler({
         "download-playlist": (NeteaseMusicPlaylist.download_all_cc, [int, str]),
         "downlaod-singer": (NeteaseMusicSinger.download_hotsong_cc, [int, str])
     }
-},'''
-login - 登录 第一步必须
+}, '''
+使用方法：
+在控制台输入
+python neteaseMusic.py [后接函数名称] [参数,]
+目前可用的函数以及函数名称：
+
 sign - 签到
+account-login - 登录 第一步必须
+account-default - 显示当前默认账户
+account-all - 显示当前全部账户
+account-change [id:int] - 更改默认账户
+account-delete [id:int] - 删除账户
 analyse - 整体分析
 analyse <all/week> - 分析全部/本周数据
 alltime <all/week> - 分析全部/这周听歌时长
