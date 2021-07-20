@@ -1,10 +1,10 @@
 
-import json
 import time
 import urllib.parse
 from base64 import b64encode
 from sys import argv
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
+from hashlib import md5
 
 # NeteaseMusicUser.login() need create QR Code
 import qrcode
@@ -24,7 +24,6 @@ from progress import Progresser
 
 header = {"Content-Type": "application/x-www-form-urlencoded",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.67"}
-csrf_token = "238dcc46feb4e141800919ef1608b351"
 encSecKey = "a0eb942126f004306a718aaf9fdbd8050c6aee4683d5fddc7f2946f27dc0d51164396be851a00f927d3449cf61f240442273dc46cfac1e6c160c8c85b78ff56034198914eb0a23ecbcadb493dc354c27d026a874dcb982f41e0077635b5c3fc9337e7fee2e0b30e84052d95e9fdc8ded40a00da010b947d9a6925fb6611a08c8"
 URL_SONG_DETAIL = "http://music.163.com/weapi/song/detail"
 URL_SONG_DATA = "http://music.163.com/weapi/song/enhance/player/url"
@@ -34,13 +33,15 @@ URL_ALBUM_DETAIL = "http://music.163.com/album?id=%s"
 URL_PLAYLIST_DETAIL = "https://music.163.com/playlist?id=%s"
 URL_USER_RECORD = "http://music.163.com/weapi/v1/play/record"
 URL_USER_HOME = "https://music.163.com/user/home?id=%s"
-URL_USER_SIGN = f"https://music.163.com/weapi/point/dailyTask?csrf_token={csrf_token}"
+URL_USER_SIGN = "https://music.163.com/weapi/point/dailyTask?csrf_token=%s"
 URL_USER_LOGIN = "https://music.163.com/weapi/login/qrcode/client/login?csrf_token="
+URL_USER_CELLPHONE = "https://interface.music.163.com/weapi/login/cellphone"
 URL_USER_UNIKEY = "https://music.163.com/weapi/login/qrcode/unikey?csrf_token="
 URL_USER_QRCODE = "http://music.163.com/login?codekey=%s"
 URL_USER_GET = "https://music.163.com/weapi/w/nuser/account/get?csrf_token=%s"
-SELF_USER_ID = 5014945121
 FILE_PATH = "NeteaseMusic.txt"
+
+NeteaseMusicBuffer: Dict[str, Any] = {}
 
 
 class NeteaseMusicMain:
@@ -60,6 +61,10 @@ class NeteaseMusicMain:
         p = AES_encrypt(asrsea3.encode('utf-8'), asrsea0.encode('utf-8'))
         params = AES_encrypt(a_c.encode('utf-8'), p).decode('utf-8')
         return params
+
+    @staticmethod
+    def neteaseMusicEncrypt_cc(content: str):
+        print(NeteaseMusicMain.neteaseMusicEncrypt(content))
 
     @classmethod
     def neteaseMusicPost(cls, url: str, content: str, cookies=None) -> dict:
@@ -157,16 +162,31 @@ class NeteaseMusicConfig:
                 f.write(str(b))
 
     @staticmethod
+    def login_cc(id: int, csrf: str, musicU: str):
+        r = NeteaseMusicMain.neteaseMusicPost(URL_USER_GET % csrf, str(
+            {"csrf_token": csrf}), cookies=f"MUSIC_U={musicU}; __csrf={csrf}")
+        if r["account"] == None and r["profile"] == None:
+            raise ValueError("账户错误")
+        name = r["profile"]["nickname"]
+        NeteaseMusicConfig(NeteaseMusicConfig.get_all_config() == [],
+                           name, id, musicU, csrf, '').login()
+
+    @staticmethod
     def get_default_config():
-        with open(FILE_PATH, "a+") as f:
-            f.seek(0)
-            r = f.read()
-            if r == "" or r == "[]":
-                raise NeteaseMusicConfig.NotLoginError()
-            m: list = eval(r)
-            if len(m) == 0:
-                return NeteaseMusicConfig.NotLoginError()
-            return NeteaseMusicConfig.createWithDict(m[0])
+        if "config" not in NeteaseMusicBuffer:
+            with open(FILE_PATH, "a+") as f:
+                f.seek(0)
+                r = f.read()
+                if r == "" or r == "[]":
+                    raise NeteaseMusicConfig.NotLoginError()
+                m: list = eval(r)
+                if len(m) == 0:
+                    return NeteaseMusicConfig.NotLoginError()
+                c = NeteaseMusicConfig.createWithDict(m[0])
+                NeteaseMusicBuffer["config"] = c
+                return c
+        else:
+            return NeteaseMusicBuffer["config"]
 
     @classmethod
     def get_default_config_cc(cls):
@@ -178,7 +198,7 @@ class NeteaseMusicConfig:
 
     @staticmethod
     def createWithDict(d: List[Dict[str, str]]):
-        return NeteaseMusicConfig(d["isDefault"], d["nickName"], d["id"], d["MUSIC_U"], d["__csrf"], d["NMTID"])
+        return NeteaseMusicConfig(d["isDefault"], d["nickName"], d["id"], d["MUSIC_U"], d["__csrf"], d["NMTID"], d["lastSignDate"])
 
     @classmethod
     def get_all_config(cls):
@@ -303,12 +323,13 @@ class NeteaseMusicSong:
     @staticmethod
     def get_music_detail(id: int, isPost: bool = True) -> Union[str, dict]:
         c = str({"id": id, "ids": f'["{id}"]', "limit": 10000,
-                 "offset": 0, "csrf_token": csrf_token})
+                 "offset": 0, "csrf_token": NeteaseMusicConfig.get_default_config().csrf})
         return NeteaseMusicMain.neteaseMusicPost(URL_SONG_DETAIL, c) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
 
     @staticmethod
     def get_music_url(id: int, isPost: bool = True) -> Union[str, dict]:
-        c = str({"ids": f"[{id}]", "br": 128000, "csrf_token": csrf_token})
+        c = str({"ids": f"[{id}]", "br": 128000,
+                 "csrf_token": NeteaseMusicConfig.get_default_config().csrf})
         return NeteaseMusicMain.neteaseMusicPost(URL_SONG_DATA, c) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
 
     @staticmethod
@@ -432,6 +453,21 @@ class NeteaseMusicUser:
         return NeteaseMusicUser(config.id, config)
 
     @staticmethod
+    def login_message(phone: int, password: str):
+        m = md5(str(password).encode("utf-8")).hexdigest()
+        s = requests.Session()
+        c = str({"password": m, "phone": str(phone),
+                 "checkToken": "9ca17ae2e6ffcda170e2e6eed4d225aabd879ac1408eb48eb2c14f869e9ebaaa73899b9dd0cb59ba97bab5b52af0feaec3b92a888ea586d379b7be9cccd44e868b9bb6d15a9bafa783c854f589acd7f97cfb98ee9e"})
+        r = s.post(URL_USER_CELLPHONE, NeteaseMusicMain.join(
+            NeteaseMusicMain.neteaseMusicEncrypt(c)), headers=header)
+        q = r.json()
+        print(q)
+        k = s.cookies
+        if q["code"] != 400 and q["code"] != 250:
+            NeteaseMusicConfig(NeteaseMusicConfig.get_all_config() == [],
+                               "", -1, k.get("MUSIC_U"), k.get("__csrf"), k.get("NMTID")).login()
+
+    @staticmethod
     def login():
         c = '{"type":"1","csrf_token":""}'
         r = NeteaseMusicMain.neteaseMusicPost(URL_USER_UNIKEY, c)
@@ -493,15 +529,22 @@ class NeteaseMusicUser:
     def sign(self):
         if not self.isLogin:
             raise NeteaseMusicConfig.NotLoginError()
-        v=self.config
+        v = self.config
+
         t = time.strftime("%Y%m%d", time.localtime())
-        if t == v.lastSignDate:
+        if t == str(v.lastSignDate):
             print("已经签到了")
             return
-        c = str({"type": 1})
-        r = NeteaseMusicMain.neteaseMusicPost(URL_USER_SIGN, c)
-        v.updateLastSignDate(t)
-        print("签到成功" if r["code"] == 200 else f"签到失败，详情：{r}")
+        c = str({"type": 1, "csrf_token": self.config.csrf})
+        r = NeteaseMusicMain.neteaseMusicPost(
+            URL_USER_SIGN % self.config.csrf, c, self.config.toCookie())
+        if r["code"] == 200:
+            v.updateLastSignDate(t)
+            print("签到成功")
+        else:
+            print(f"签到失败，详情：{r}")
+            if r["code"] == -2:
+                v.updateLastSignDate(t)
 
 
 class NeteaseMusicRecord:
@@ -515,7 +558,7 @@ class NeteaseMusicRecord:
 
     def get_user_record(self, id: int, isPost: bool = True):
         c = str({"limit": "1000", "offset": "0", "total": "true",
-                 "type": "-1", "uid": str(id), "csrf_token": csrf_token})
+                 "type": "-1", "uid": str(id), "csrf_token": NeteaseMusicConfig.get_default_config().csrf})
         return NeteaseMusicMain.neteaseMusicPost(URL_USER_RECORD, c, self.id.config.toCookie()) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
     #######################################
 
@@ -575,6 +618,7 @@ class NeteaseMusicRecord:
                   second_format(s), "=", second_format(a), "小时的音乐")
         else:
             print("一共听了：", second_format(alt), "小时的音乐")
+            print(f"本周平均每天听 {second_format(alt//7)} 小时的音乐")
         return alt
     #######################################
 
@@ -643,10 +687,12 @@ cc = EasyCommandCompiler({
         "sign": (NeteaseMusicUser.sign_cc, []),
         "analyse": (NeteaseMusicRecord.analyse_complex, []),
         "account-login": (NeteaseMusicUser.login, []),
+        "account-login-qrcode": (NeteaseMusicUser.login, []),
         "account-all": (NeteaseMusicConfig.get_all_config_cc, []),
         "account-default": (NeteaseMusicConfig.get_default_config_cc, [])
     },
     1: {
+        "encrypt": (NeteaseMusicMain.neteaseMusicEncrypt_cc, [str]),
         "account-change": (NeteaseMusicConfig.change_default_config, [int]),
         "account-delete": (NeteaseMusicConfig.delete_config, [int]),
         "analyse": (NeteaseMusicRecord.analyse_cc, [str]),
@@ -658,11 +704,15 @@ cc = EasyCommandCompiler({
         "downlaod-singer": (NeteaseMusicSinger.download_hotsong_cc, [int])
     },
     2: {
+        "account-login-message": (NeteaseMusicUser.login_message, [int, str]),
         "download": (NeteaseMusicSong.download_cc, [int, str]),
         "download-metadata": (NeteaseMusicSong.download_metadata_cc, [int, str]),
         "download-album": (NeteaseMusicAlbum.download_all_cc, [int, str]),
         "download-playlist": (NeteaseMusicPlaylist.download_all_cc, [int, str]),
         "downlaod-singer": (NeteaseMusicSinger.download_hotsong_cc, [int, str])
+    },
+    3: {
+        "account-add": (NeteaseMusicConfig.login_cc, [int, str, str])
     }
 }, '''
 使用方法：
@@ -671,11 +721,14 @@ python neteaseMusic.py [后接函数名称] [参数,]
 目前可用的函数以及函数名称：
 
 sign - 签到
-account-login - 登录 第一步必须
+account-login - 使用二维码登录
+account-login-qrcode - 使用二维码登录（推荐）
+account-login-message <phone:int> <password:str> - 使用账号密码登录（不推荐）
+account-add <id:int> <csrf:str> <musicu:str> - 添加账户
 account-default - 显示当前默认账户
 account-all - 显示当前全部账户
-account-change [id:int] - 更改默认账户
-account-delete [id:int] - 删除账户
+account-change <id:int> - 更改默认账户
+account-delete <id:int> - 删除账户
 analyse - 整体分析
 analyse <all/week> - 分析全部/本周数据
 alltime <all/week> - 分析全部/这周听歌时长
