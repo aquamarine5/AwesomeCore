@@ -1,5 +1,5 @@
 from typing import Union, Tuple
-from time import time
+from time import time,sleep
 
 
 class Progresser():
@@ -32,25 +32,25 @@ class Progresser():
             slider += f' {int(self.get_progress(p)*100)}%'
         return slider
 
-    def print_slider(self, p: Union[float, int],
-                     filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
+    def pslider(self, p: Union[float, int],
+                filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
         print(self.get_slider(p, filled_str,
                               filled_border, filled_none, slider_length))
 
-    def print_slider_animation(self, p: Union[float, int],
-                               filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
+    def pslider_animation(self, p: Union[float, int],
+                          filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
         print(self.get_slider(p, filled_str, filled_border,
                               filled_none, slider_length), end="\r")
 
-    def print_slider_complex(self, p: Union[float, int],
-                             show_count: bool = True, show_progress: bool = True,
-                             filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
+    def pslider_complex(self, p: Union[float, int],
+                        show_count: bool = True, show_progress: bool = True,
+                        filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
         print(self.get_slider_complex(p, show_count, show_progress,
                                       filled_str, filled_border, filled_none, slider_length))
 
-    def print_slider_complex_animation(self, p: Union[float, int],
-                                       show_count: bool = True, show_progress: bool = True,
-                                       filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
+    def pslider_complex_animation(self, p: Union[float, int],
+                                  show_count: bool = True, show_progress: bool = True,
+                                  filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10):
         print(self.get_slider_complex(p, show_count, show_progress,
                                       filled_str, filled_border, filled_none, slider_length), end="\r")
 
@@ -73,7 +73,21 @@ class Progresser():
     def show_run_time(self):
         print(f"\nUse {round(time()-self.startTime,4)}s to run.")
 
-
+class ValuedProgresser():
+    def __init__(self, slider_length: int = 10,filled_str: str = "-", filled_none: str = " ") -> None:
+        self.slider_length=slider_length
+        self.p=0
+        self.filled_str=filled_str
+        self.filled_none=filled_none
+    def get_slider_inside(self):
+        l=[self.filled_none for _ in range(self.slider_length-1)]
+        l.insert(self.p,self.filled_str)
+        self.p+=1
+        if self.p>=self.slider_length:
+            self.p=0
+        return "".join(l)
+    def pslider_animation_next(self,value:int, filled_border: Tuple[str, str] = ["[", "]"]):
+        print(f'{filled_border[0]}{self.get_slider_inside()}{filled_border[1]} ({value})',end="\r")
 def second2string(s: int) -> str:
     m = 0
     h = 0

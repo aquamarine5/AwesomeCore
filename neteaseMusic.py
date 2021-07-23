@@ -252,7 +252,6 @@ class NeteaseMusicSong:
         f["TALB"] = id3.TALB(encoding=3, text=self.info["album"]["name"])
         f["TIT2"] = id3.TIT2(encoding=3, text=self.name)
         if includeImage:
-            print(1)
             f["APIC"] = id3.APIC(encoding=3, mime="image/jpeg", type=3, desc=u"cover",
                                  data=requests.get(f"{self.picUrl}?param=256y256").content)
         f.save()
