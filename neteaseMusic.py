@@ -1,4 +1,5 @@
 
+import json
 import time
 import urllib.parse
 from base64 import b64encode
@@ -102,7 +103,7 @@ class NeteaseMusicConfigUser(BaseConfigUser):
         return cls(dt["id"], dt["isDefault"], dt["nickName"], dt["MUSIC_U"], dt["__csrf"], dt["NMTID"], dt["lastSignDate"])
 
     def toUser(self) -> str:
-        return f"{'●' if self.isDefault else '○'} {self.nickName}({self.id}) cookie:{self.toCookie()}"
+        return f"{self.nickName}({self.id}) cookie:{self.toCookie()}"
 
     def toCookie(self) -> str:
         return f"MUSIC_U={self.MusicU}; NMTID={self.nmtid}; __csrf={self.csrf}"
@@ -209,13 +210,13 @@ class NeteaseMusicSong:
     @staticmethod
     def get_music_detail(id: int, isPost: bool = True) -> Union[str, dict]:
         c = str({"id": id, "ids": f'["{id}"]', "limit": 10000,
-                 "offset": 0, "csrf_token": NeteaseMusicUser.get_default_config().csrf})
+                 "offset": 0, "csrf_token": NeteaseMusicConfig.get_default_config().csrf})
         return NeteaseMusicMain.neteaseMusicPost(URL_SONG_DETAIL, c) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
 
     @staticmethod
     def get_music_url(id: int, isPost: bool = True) -> Union[str, dict]:
         c = str({"ids": f"[{id}]", "br": 128000,
-                 "csrf_token": NeteaseMusicUser.get_default_config().csrf})
+                 "csrf_token": NeteaseMusicConfig.get_default_config().csrf})
         return NeteaseMusicMain.neteaseMusicPost(URL_SONG_DATA, c) if isPost else NeteaseMusicMain.neteaseMusicEncrypt(c)
 
     @staticmethod
@@ -315,7 +316,7 @@ class NeteaseMusicAlbum(NeteaseMusicWebLoader):
 
 class NeteaseMusicUser:
     def __init__(self, id: int, config: NeteaseMusicConfigUser = None) -> None:
-        self.isLogin: bool = config.isLogin()
+        self.isLogin: bool = NeteaseMusicConfig.isLogin(id)
         self.config: NeteaseMusicConfigUser = NeteaseMusicConfig.get_config(
             id) if config == None else config
         self.id = id
@@ -338,19 +339,30 @@ class NeteaseMusicUser:
         return NeteaseMusicUser(config.id, config)
 
     @staticmethod
-    def login_message(phone: int, password: str):
+    def login_text(phone: int, password: str):
+        if len(str(phone)) != 11:
+            print("手机号必须为11位")
+            return
         m = md5(str(password).encode("utf-8")).hexdigest()
         s = requests.Session()
         c = str({"password": m, "phone": str(phone),
                  "checkToken": "9ca17ae2e6ffcda170e2e6eed4d225aabd879ac1408eb48eb2c14f869e9ebaaa73899b9dd0cb59ba97bab5b52af0feaec3b92a888ea586d379b7be9cccd44e868b9bb6d15a9bafa783c854f589acd7f97cfb98ee9e"})
         r = s.post(URL_USER_CELLPHONE, NeteaseMusicMain.join(
             NeteaseMusicMain.neteaseMusicEncrypt(c)), headers=header)
+        print(s.cookies)
         q = r.json()
-        print(q)
         k = s.cookies
-        if q["code"] != 400 and q["code"] != 250:
-            NeteaseMusicConfig.login(NeteaseMusicConfig.get_all_config() == [],
-                                     "", -1, k.get("MUSIC_U"), k.get("__csrf"), k.get("NMTID"))
+        if q["code"] == 200:
+            u = NeteaseMusicConfigUser(q["profile"]["userId"], NeteaseMusicConfig.get_all_config() == [],
+                                       q["profile"]["nickname"],  k.get("MUSIC_U"), k.get("__csrf"), k.get("NMTID"))
+            NeteaseMusicConfig.login(u)
+            print(u.toUser())
+        elif q["code"] == 502 or q["code"] == 501:
+            print(q["msg"])
+        elif q["code"] == 400:
+            print("请稍后再试，Responce:", q)
+        else:
+            print(f"遇到问题{q['code']}，Response:\n", q)
 
     @staticmethod
     def login():
@@ -515,6 +527,7 @@ class NeteaseMusicRecord:
         self.analyse_all()
         self.alltime_week()
         self.alltime_all()
+        print(f"一共听了 {self.allListen} 首歌")
 
     @staticmethod
     def analyse_cc(i: str):
@@ -589,7 +602,7 @@ cc = EasyCommandCompiler({
         "downlaod-singer": (NeteaseMusicSinger.download_hotsong_cc, [int])
     },
     2: {
-        "account-login-message": (NeteaseMusicUser.login_message, [int, str]),
+        "account-login-text": (NeteaseMusicUser.login_text, [int, str]),
         "download": (NeteaseMusicSong.download_cc, [int, str]),
         "download-metadata": (NeteaseMusicSong.download_metadata_cc, [int, str]),
         "download-album": (NeteaseMusicAlbum.download_all_cc, [int, str]),
@@ -602,14 +615,14 @@ cc = EasyCommandCompiler({
 }, '''
 使用方法：
 在控制台输入
-python neteaseMusic.py [后接函数名称] [参数,]
+python neteaseMusic.py [后接函数名称] [参数,...]
 目前可用的函数以及函数名称：
 
 sign - 签到
-account-login - 使用二维码登录
-account-login-qrcode - 使用二维码登录（推荐）
-account-login-message <phone:int> <password:str> - 使用账号密码登录（不推荐）
-account-add <id:int> <csrf:str> <musicu:str> - 添加账户
+account-login - 同account-login-qrcode
+account-login-qrcode - 使用二维码登录
+account-login-text <phone:int> <password:str> - 使用账号（手机号）密码登录
+account-add <id:int> <csrf:str> <musicu:str> - 添加账户（仅用于测试阶段）
 account-default - 显示当前默认账户
 account-all - 显示当前全部账户
 account-change <id:int> - 更改默认账户

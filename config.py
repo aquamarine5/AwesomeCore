@@ -23,9 +23,9 @@ class BaseConfigUser:
         raise NotImplementedError()
 
     def toDict(self) -> dict:
-        b=self.data.copy()
-        b["id"]=self.id
-        b["isDefault"]=self.isDefault
+        b = self.data.copy()
+        b["id"] = self.id
+        b["isDefault"] = self.isDefault
         return b
 
     def toCookie(self) -> str:
@@ -53,7 +53,7 @@ class BaseConfig:
         def __str__(self) -> str:
             return f"找不到id为{self.id}的用户"
 
-    def __init__(self, file_path: str,data_type:type) -> None:
+    def __init__(self, file_path: str, data_type: type = BaseConfigUser) -> None:
         self.file_path = file_path
         self.type = data_type
 
@@ -66,7 +66,7 @@ class BaseConfig:
             else:
                 b: list = eval(m)
                 i = [j["id"] for j in b]
-                if self.id in i:
+                if data.id in i:
                     print("用户已记录，无需登录")
                     return
                 f.seek(0)
@@ -104,16 +104,17 @@ class BaseConfig:
         if r == []:
             print("没有任何账户")
         for i in range(len(r)):
-            c = r[i]
-            print(i+1,c.toUser())
+            c: BaseConfigUser = r[i]
+            print(i+1, '●' if c.isDefault else '○', c.toUser())
 
     def change_default_config(self, id: int):
         with open(self.file_path, "a+") as f:
             f.seek(0)
-            e: list = eval(f.read())
-            i = [j["id"] for j in e]
-            if len(e) == 0:
+            r = f.read()
+            if r == "" or r == "[]":
                 raise self.ConfigNotFoundError(id)
+            e: list = eval(r)
+            i = [j["id"] for j in e]
             e[0]["isDefault"] = 0
             if id not in i:
                 raise self.ConfigNotFoundError(id)
@@ -124,7 +125,7 @@ class BaseConfig:
             f.seek(0)
             f.truncate()
             f.write(str(e))
-            print(f"成功设置 {id} 为新默认用户")
+            print(f"成功设置 {c['nickName']}({id}) 为新默认用户")
 
     def delete_config(self, id: int):
         with open(self.file_path, "a+") as f:
@@ -138,7 +139,7 @@ class BaseConfig:
                 raise self.ConfigNotFoundError(id)
             d = i.index(id)
             c = e[d]
-            if c["isDefault"] == 1:
+            if c["isDefault"] == 1 and len(e) > 1:
                 e[d+1]["isDefault"] = 1
             e.remove(c)
             f.seek(0)
@@ -146,11 +147,11 @@ class BaseConfig:
             f.write(str(e))
             print(f"成功删除id为 {id} 的用户")
 
-    def get_config(cls, id: int):
-        d = cls.get_all_config()
+    def get_config(self, id: int):
+        d = self.get_all_config()
         i = [j.id for j in d]
         if id not in i:
-            raise cls.NotLoginError()
+            raise self.NotLoginError()
         return d[i.index(id)]
 
     def isLogin(self, id: int) -> bool:

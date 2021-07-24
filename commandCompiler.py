@@ -21,6 +21,7 @@ class CommandFunction:
 
 class CommandCompiler:
     def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]], help: str = "") -> None:
+        commandList[0]["help"]=CommandFunction(self.help)
         self.commandList = commandList
         self.helpInfo: str = help
 
@@ -49,6 +50,7 @@ class CommandCompiler:
 
 class EasyCommandCompiler(CommandCompiler):
     def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]], help: str = "") -> None:
+        commandList[0]["help"]=(self.help,[])
         self.commandList = commandList
         self.helpInfo = help
 
