@@ -1,7 +1,7 @@
 # AwesomeCore
 ## NeteaseMusic
 - 支持通过网易云的加密算法（AES，最后有params和encSecKey）进行POST （`NeteaseMusicMain.neteaseMusicEncrypt()`）
-- 下载音乐（128kbps）（`NeteaseMusicSong(id).download()`）以及可选的附带元数据版本（`NeteaseMusicSong(id).downlaod_with_metadata()`）
+- 下载音乐（128kbps）（`NeteaseMusicSong(id).download()`）以及可选的附带元数据版本（`NeteaseMusicSong(id).download_with_metadata()`）
 - 下载专辑或歌单的全部音乐（`NeteaseMusicWebLoader(id).download_all()`）
 - 扫码登录获取cookies（`NeteaseMusicUser.login()`）
 - 分析每周/全部所听歌曲（每首歌听了多少次，一共听了多久，这周多少时间在听歌）（`NeteaseMusicUser().analyse()` & `NeteaseMusicUser().alltime()`）
