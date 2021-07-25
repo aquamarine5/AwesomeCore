@@ -42,7 +42,6 @@ URL_USER_CELLPHONE = "https://interface.music.163.com/weapi/login/cellphone"
 URL_USER_UNIKEY = "https://music.163.com/weapi/login/qrcode/unikey?csrf_token="
 URL_USER_QRCODE = "http://music.163.com/login?codekey=%s"
 URL_USER_GET = "https://music.163.com/weapi/w/nuser/account/get?csrf_token=%s"
-FILE_PATH = "NeteaseMusic.txt"
 
 NeteaseMusicBuffer: Dict[str, Any] = {}
 
@@ -144,8 +143,10 @@ class NeteaseMusicConfigBase(BaseConfig):
         if r["account"] == None and r["profile"] == None:
             raise ValueError("账户错误")
         name = r["profile"]["nickname"]
-        self.login(NeteaseMusicUser(self.get_all_config() == [],
-                                    name, id, musicU, csrf, ''))
+        u = NeteaseMusicConfigUser(id, self.get_all_config() == [],
+                                   name, musicU, csrf, '')
+        self.login(u)
+        print(f"{name}({id})登录成功", u.toUser())
 
     def get_default_config(self) -> NeteaseMusicConfigUser:
         if "DEFAULT_CONFIG_PAGE" not in NeteaseMusicBuffer:

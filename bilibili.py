@@ -1,7 +1,8 @@
 import math
+from os import stat
 import time
 from sys import argv
-from typing import Tuple
+from typing import Any, Dict, List, Tuple
 
 import requests
 
@@ -15,18 +16,52 @@ URL_USER_HISTORY = "https://api.bilibili.com/x/web-interface/history/cursor?view
 
 
 class BilibiliConfigUser(BaseConfigUser):
-    pass
+    def __init__(self, id: int, isDefault: bool, nickName: str, sessdata: str) -> None:
+        self.id = id
+        self.sessdata = sessdata
+        self.nickName = nickName
+        super().__init__(id, isDefault=isDefault,
+                         **{"SESSDATA": sessdata, "nickName": nickName})
+
+    def toCookie(self) -> str:
+        return f"SESSDATA={self.sessdata}"
+
+    def toUser(self) -> str:
+        return f"{self.nickName}({self.id}) SESSDATA:{self.sessdata}"
+
+    @classmethod
+    def createWithDict(cls, dt: Dict[str, Any]):
+        return cls(dt["id"], dt["isDefault"], dt["nickName"], dt["SESSDATA"])
 
 
-class BilibiliConfig(BaseConfig):
-    @staticmethod
-    def self_token():
-        return ""
+class BilibiliConfigBase(BaseConfig):
+    def __init__(self) -> None:
+        super().__init__("Bilibili.txt", BilibiliConfigUser)
+
+    def login(self, data: BilibiliConfigUser):
+        return super().login(data)
+
+    def login_cc(self, id: int, sessdata: str):
+        u=BilibiliConfigUser(
+            id, self.get_all_config() == [], "", sessdata)
+        self.login(u)
+        print(f"登录成功 ,",u.toUser())
+
+    def get_config(self, id: int) -> BilibiliConfigUser:
+        return super().get_config(id)
+
+    def get_all_config(self) -> List[BilibiliConfigUser]:
+        return super().get_all_config()
+
+    def get_default_config(self) -> BilibiliConfigUser:
+        return super().get_default_config()
+
+
+BilibiliConfig: BilibiliConfigBase = BilibiliConfigBase()
 
 
 class BilibiliVideo:
     def __init__(self, bvid: str) -> None:
-
         self.content: dict = requests.get(URL_VIDEO_VIEW % bvid).json()
         if self.content["code"] == 62002:
             self.time = 0
@@ -83,7 +118,7 @@ class BilibiliUser:
                 return s if len(s) == 2 else "0"*(2-len(s))+s
             return f"{fill_to_2(hh)}:{fill_to_2(mm)}:{fill_to_2(ss)}"
         w = requests.Session()
-        w.cookies.set("SESSDATA", BilibiliConfig.self_token(),
+        w.cookies.set("SESSDATA", BilibiliConfig.get_default_config().sessdata,
                       domain="bilibili.com")
         print(w.cookies)
         nt: int = 0
@@ -117,15 +152,19 @@ class BilibiliUser:
                 break
         print(f"\n{days}天平均看{second_format(r//days)}小时的视频")
         print(f"一共看了{second_format(r)}小时的视频")
+    @classmethod
+    def analyse_cc(cls):
+        BilibiliUser(BilibiliConfig.get_default_config().id).analyse()
 
-
-BilibiliUser(1).analyse()
 cc = EasyCommandCompiler({
     0: {
-        "analyse": (BilibiliUser.analyse, [])
+        "analyse": (BilibiliUser.analyse_cc, [])
     },
     1: {
         "bv2av": (BilibiliVideo.bv2av_cc, [str])
+    },
+    2:{
+        "login":(BilibiliConfig.login_cc,[int,str])
     }
 })
 cc.compiled(argv)

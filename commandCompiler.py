@@ -3,13 +3,13 @@ from typing import Callable, Dict, List, Optional, Tuple, Type
 
 
 class CommandArgument:
-    def __init__(self, args: List[Type]) -> None:
+    def __init__(self, args: List[Type]=[]) -> None:
         self.length = len(args)
         self.args = args
 
 
 class CommandFunction:
-    def __init__(self, function: Callable, arg: CommandArgument = None) -> None:
+    def __init__(self, function: Callable, arg: CommandArgument=CommandArgument([])) -> None:
         self.function = function
         self.arg = arg
 
@@ -21,7 +21,7 @@ class CommandFunction:
 
 class CommandCompiler:
     def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]], help: str = "") -> None:
-        commandList[0]["help"]=CommandFunction(self.help)
+        commandList[0]["help"]=CommandFunction(self.help,CommandArgument([]))
         self.commandList = commandList
         self.helpInfo: str = help
 
