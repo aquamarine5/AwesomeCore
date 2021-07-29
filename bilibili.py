@@ -1,5 +1,7 @@
+from ffmpeg import FFMpegCommandCollection
 import math
 from os import stat
+import os
 import time
 from sys import argv
 from typing import Any, Dict, List, Tuple
@@ -36,16 +38,16 @@ class BilibiliConfigUser(BaseConfigUser):
 
 class BilibiliConfigBase(BaseConfig):
     def __init__(self) -> None:
-        super().__init__("Bilibili.txt", BilibiliConfigUser)
+        super().__init__("Bilibili.json", BilibiliConfigUser)
 
     def login(self, data: BilibiliConfigUser):
         return super().login(data)
 
     def login_cc(self, id: int, sessdata: str):
-        u=BilibiliConfigUser(
+        u = BilibiliConfigUser(
             id, self.get_all_config() == [], "", sessdata)
         self.login(u)
-        print(f"登录成功 ,",u.toUser())
+        print(f"登录成功 ,", u.toUser())
 
     def get_config(self, id: int) -> BilibiliConfigUser:
         return super().get_config(id)
@@ -63,10 +65,15 @@ BilibiliConfig: BilibiliConfigBase = BilibiliConfigBase()
 class BilibiliVideo:
     def __init__(self, bvid: str) -> None:
         self.content: dict = requests.get(URL_VIDEO_VIEW % bvid).json()
-        if self.content["code"] == 62002:
+        if self.content["code"] == 62002 or self.content["code"] == -404:
             self.time = 0
             return
-        self.content = self.content["data"]
+        try:
+            self.content = self.content["data"]
+        except KeyError as e:
+            print(self.content)
+            print(bvid)
+            raise e
         self.av: int = self.content["aid"]
         self.bvid = bvid
         self.cid: int = self.content["cid"]
@@ -100,6 +107,46 @@ class BilibiliVideo:
     @staticmethod
     def bv2av_cc(bvid: str):
         print(BilibiliVideo.bv2av(bvid))
+
+    def download(self, path: str = ".", quality: int = 80):
+        def get_ffmpeg_path() -> str:
+            return r'C:\Users\44319\Downloads\ffmpeg-2021-07-27-git-0068b3d0f0-essentials_build\bin'
+        header = {
+            "Referer": "http://player.bilibili.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.55"
+        }
+        playc = requests.get(URL_VIDEO_PLAYURL % (self.cid, self.bvid)).json()
+        playcd = playc["data"]
+        if quality not in playcd["accept_quality"]:
+            raise ValueError()
+        if quality == 116:
+            raise ValueError()
+        basePath = f"{path}/{self.bvid}"
+        qualityIndex = playcd["accept_quality"].index(quality)
+        qualityDesc = playcd["accept_description"][qualityIndex]
+        videoDash = playcd["dash"]["video"][qualityIndex]
+        videoUrl: str = videoDash["baseUrl"]
+        videoType = videoUrl.split("?")[0].split(".")[-1:][0]
+        videoPath = f"{basePath}_video.{'mp4' if videoType=='m4s' else videoType}"
+        audioDashList = {i["id"]-30200: i for i in playcd["dash"]["audio"]}
+        if quality in audioDashList:
+            audioDash = audioDashList[quality]
+        else:
+            audioDash = audioDashList[80]
+        audioUrl: str = audioDash["baseUrl"]
+        audioType = audioUrl.split("?")[0].split(".")[-1:][0]
+        print(videoUrl)
+        audioPath = f"{basePath}_audio.{'mp4' if audioType=='m4s' else audioType}"
+        videoResultPath = f"{basePath}_video_mix.mp4"
+        audioDecodePath = f'{basePath}_audio_decode.mp3'
+        with open(videoPath, "wb+") as f:
+            f.write(requests.get(videoUrl, headers=header).content)
+        with open(audioPath, "wb+") as f:
+            f.write(requests.get(audioUrl, headers=header).content)
+        os.system(
+            f'{get_ffmpeg_path()}/ffmpeg.exe -i "{audioPath}" "{audioDecodePath}')
+        os.system(
+            f'{get_ffmpeg_path()}/ffmpeg.exe -i "{videoPath}" -i "{audioDecodePath}" -c copy "{videoResultPath}"')
 
 
 class BilibiliUser:
@@ -152,10 +199,13 @@ class BilibiliUser:
                 break
         print(f"\n{days}天平均看{second_format(r//days)}小时的视频")
         print(f"一共看了{second_format(r)}小时的视频")
+
     @classmethod
     def analyse_cc(cls):
         BilibiliUser(BilibiliConfig.get_default_config().id).analyse()
 
+
+BilibiliVideo("BV1vX4y1c72j").download()
 cc = EasyCommandCompiler({
     0: {
         "analyse": (BilibiliUser.analyse_cc, [])
@@ -163,8 +213,9 @@ cc = EasyCommandCompiler({
     1: {
         "bv2av": (BilibiliVideo.bv2av_cc, [str])
     },
-    2:{
-        "login":(BilibiliConfig.login_cc,[int,str])
+    2: {
+        "login": (BilibiliConfig.login_cc, [int, str])
     }
 })
+cc.add_collection(FFMpegCommandCollection())
 cc.compiled(argv)

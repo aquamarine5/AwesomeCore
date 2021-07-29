@@ -1,6 +1,6 @@
 
 from typing import Union, Tuple
-from time import time,sleep
+from time import time
 
 
 class Progresser():

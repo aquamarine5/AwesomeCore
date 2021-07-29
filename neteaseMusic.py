@@ -113,7 +113,7 @@ class NeteaseMusicConfigUser(BaseConfigUser):
 
 class NeteaseMusicConfigBase(BaseConfig):
     def __init__(self) -> None:
-        self.file_path = "NeteaseMusic.txt"
+        self.file_path = "NeteaseMusic.json"
         self.type = NeteaseMusicConfigUser
 
     @staticmethod
@@ -132,7 +132,7 @@ class NeteaseMusicConfigBase(BaseConfig):
             self.lastSignDate = date
             f.seek(0)
             f.truncate()
-            f.write(str(d))
+            f.write(str(d).replace("'",'"'))
 
     def login(self, data: NeteaseMusicConfigUser):
         super().login(data)

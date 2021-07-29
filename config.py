@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, TypeVar
 
 
 class BaseConfigUser:
@@ -62,7 +62,7 @@ class BaseConfig:
             f.seek(0)
             m = f.read()
             if m == "":
-                f.write(str([data.toDict()]))
+                f.write(str([data.toDict()]).replace("'",'"'))
             else:
                 b: list = eval(m)
                 i = [j["id"] for j in b]
@@ -75,7 +75,7 @@ class BaseConfig:
                     b.insert(0, data.toDict())
                 else:
                     b.append(data.toDict())
-                f.write(str(b))
+                f.write(str(b).replace("'",'"'))
 
     def get_default_config(self):
         with open(self.file_path, "a+") as f:
@@ -86,7 +86,7 @@ class BaseConfig:
             m: list = eval(r)
             if len(m) == 0:
                 return self.NotLoginError()
-            c = self.type.createWithDict(m[0])
+            c:BaseConfigUser = self.type.createWithDict(m[0])
             return c
 
     def get_all_config(self):
@@ -124,7 +124,7 @@ class BaseConfig:
             e.insert(0, c)
             f.seek(0)
             f.truncate()
-            f.write(str(e))
+            f.write(str(e).replace("'",'"'))
             print(f"成功设置 {c['nickName']}({id}) 为新默认用户")
 
     def delete_config(self, id: int):
@@ -144,7 +144,7 @@ class BaseConfig:
             e.remove(c)
             f.seek(0)
             f.truncate()
-            f.write(str(e))
+            f.write(str(e).replace("'",'"'))
             print(f"成功删除id为 {id} 的用户")
 
     def get_config(self, id: int):

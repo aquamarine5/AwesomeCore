@@ -3,13 +3,13 @@ from typing import Callable, Dict, List, Optional, Tuple, Type
 
 
 class CommandArgument:
-    def __init__(self, args: List[Type]=[]) -> None:
+    def __init__(self, args: List[Type] = []) -> None:
         self.length = len(args)
         self.args = args
 
 
 class CommandFunction:
-    def __init__(self, function: Callable, arg: CommandArgument=CommandArgument([])) -> None:
+    def __init__(self, function: Callable, arg: CommandArgument = CommandArgument([])) -> None:
         self.function = function
         self.arg = arg
 
@@ -19,11 +19,26 @@ class CommandFunction:
         self.function(*r)
 
 
-class CommandCompiler:
-    def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]], help: str = "") -> None:
-        commandList[0]["help"]=CommandFunction(self.help,CommandArgument([]))
+class CommandCollection:
+    def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]]) -> None:
         self.commandList = commandList
+
+
+class CommandCompiler:
+    def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]],
+                 collection: Optional[List[CommandCollection]] = None, help: str = "") -> None:
+        commandList[0]["help"] = CommandFunction(
+            self.help, CommandArgument([]))
+        self.commandList = commandList
+        if collection != None:
+            for i in collection:
+                self.add_collection(i)
         self.helpInfo: str = help
+
+    def add_collection(self, coll: CommandCollection):
+        d = coll.commandList
+        for i in d:
+            self.commandList[i].update(d[i])
 
     def compiled(self, cmd: List[str]):
         cl = self.commandList
@@ -48,11 +63,23 @@ class CommandCompiler:
         cf.run(args)
 
 
-class EasyCommandCompiler(CommandCompiler):
-    def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]], help: str = "") -> None:
-        commandList[0]["help"]=(self.help,[])
+class EasyCommandCollection(CommandCollection):
+    def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]]) -> None:
         self.commandList = commandList
+
+
+class EasyCommandCompiler(CommandCompiler):
+    def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]],
+                 collection: Optional[List[EasyCommandCollection]] = None, help: str = "") -> None:
+        commandList[0]["help"] = (self.help, [])
+        self.commandList = commandList
+        if collection != None:
+            for i in collection:
+                self.add_collection(i)
         self.helpInfo = help
+
+    def add_collection(self, coll: EasyCommandCollection):
+        super().add_collection(coll)
 
     def run(self, cf: Tuple[Callable, List[Type]], args: List[str]):
         r = (cf[1][i](args[i]) for i in range(len(args)))
