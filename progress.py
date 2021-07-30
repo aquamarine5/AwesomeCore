@@ -17,9 +17,9 @@ class Progresser():
     def get_slider(self, p: Union[float, int],
                    filled_str: str = "-", filled_border: Tuple[str, str] = ["[", "]"], filled_none: str = " ", slider_length: int = 10) -> str:
         progress: float = self.get_progress(p)
-        filled_count = int(progress*10)
-        if filled_count >= 10:
-            filled_count = 10
+        filled_count = int(progress*slider_length)
+        if filled_count >= slider_length:
+            filled_count = slider_length
         return f'{filled_border[0]}{filled_str*filled_count}{filled_none*(slider_length-filled_count)}{filled_border[1]}'
 
     def get_slider_complex(self, p: Union[float, int],

@@ -1,15 +1,20 @@
-from ffmpeg import FFMpegCommandCollection
 import math
-from os import stat
 import os
+import subprocess
 import time
 from sys import argv
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from util import progresser_download
 
 import requests
 
+# github.com/AwesomeCore -> commandCompiler.py
 from commandCompiler import EasyCommandCompiler
+# github.com/AwesomeCore -> config.py
 from config import BaseConfig, BaseConfigUser
+# github.com/AwesomeCore -> ffmpeg.py
+from ffmpeg import FFMpegCommandCollection, FFMpegController
+# github.com/AwesomeCore -> progress.py
 from progress import ValuedProgresser
 
 URL_VIDEO_VIEW = "http://api.bilibili.com/x/web-interface/view?bvid=%s"
@@ -109,12 +114,33 @@ class BilibiliVideo:
         print(BilibiliVideo.bv2av(bvid))
 
     def download(self, path: str = ".", quality: int = 80):
-        def get_ffmpeg_path() -> str:
-            return r'C:\Users\44319\Downloads\ffmpeg-2021-07-27-git-0068b3d0f0-essentials_build\bin'
+        def get_ffmpeg_path() -> Optional[str]:
+            if FFMpegController.check_is_installed():
+                return FFMpegController.get_ffmpeg().path
+            else:
+                print("没有安装ffmpeg，可用ffmpeg-bind绑定或ffmpeg-download在线下载")
+                return None
+
+        def is_overwrite_file(path: str) -> bool:
+            if os.path.exists(path):
+                absPath = os.path.abspath(path)
+                questionResult = input(f"{absPath} 已经存在，是否覆盖? [y/n] > ")
+                if questionResult == "y":
+                    os.remove(absPath)
+                    return True
+                elif questionResult == "n":
+                    print("已终止")
+                    return False
+                else:
+                    return is_overwrite_file(path)
+            else:
+                return True
         header = {
             "Referer": "http://player.bilibili.com/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.55"
         }
+        if (ffmpegPath := get_ffmpeg_path()) == None:
+            return
         playc = requests.get(URL_VIDEO_PLAYURL % (self.cid, self.bvid)).json()
         playcd = playc["data"]
         if quality not in playcd["accept_quality"]:
@@ -135,18 +161,32 @@ class BilibiliVideo:
             audioDash = audioDashList[80]
         audioUrl: str = audioDash["baseUrl"]
         audioType = audioUrl.split("?")[0].split(".")[-1:][0]
-        print(videoUrl)
         audioPath = f"{basePath}_audio.{'mp4' if audioType=='m4s' else audioType}"
         videoResultPath = f"{basePath}_video_mix.mp4"
-        audioDecodePath = f'{basePath}_audio_decode.mp3'
-        with open(videoPath, "wb+") as f:
-            f.write(requests.get(videoUrl, headers=header).content)
-        with open(audioPath, "wb+") as f:
-            f.write(requests.get(audioUrl, headers=header).content)
-        os.system(
-            f'{get_ffmpeg_path()}/ffmpeg.exe -i "{audioPath}" "{audioDecodePath}')
-        os.system(
-            f'{get_ffmpeg_path()}/ffmpeg.exe -i "{videoPath}" -i "{audioDecodePath}" -c copy "{videoResultPath}"')
+        audioDecodePath = f'{basePath}_audio_decode.aac'
+        progresser_download(videoUrl, videoPath,
+                            isParentPath=False, header=header)
+        progresser_download(audioUrl, audioPath,
+                            isParentPath=False, header=header)
+
+        if not is_overwrite_file(audioDecodePath):
+            return
+
+        if not is_overwrite_file(videoResultPath):
+            return
+        subprocess.run(f'"{ffmpegPath}" -i "{audioPath}" -c copy "{audioDecodePath}"',
+                       shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", cwd="\\".join(ffmpegPath.split("\\")[:-1]))
+        subprocess.run(f'"{ffmpegPath}" -i "{videoPath}" -i "{audioDecodePath}" -c copy "{videoResultPath}"',
+                       shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", cwd="\\".join(ffmpegPath.split("\\")[:-1]))
+        os.remove(audioDecodePath)
+        os.remove(audioPath)
+        os.remove(videoPath)
+        print(
+            f"{self.bvid}下载完成，质量：{qualityDesc}，地址：\n{os.path.abspath(videoResultPath)}")
+
+    @staticmethod
+    def download_cc(bvid: str, path: str = ".", quality: int = 80):
+        BilibiliVideo(bvid).download(path, quality)
 
 
 class BilibiliUser:
@@ -205,17 +245,31 @@ class BilibiliUser:
         BilibiliUser(BilibiliConfig.get_default_config().id).analyse()
 
 
-BilibiliVideo("BV1vX4y1c72j").download()
 cc = EasyCommandCompiler({
     0: {
         "analyse": (BilibiliUser.analyse_cc, [])
     },
     1: {
-        "bv2av": (BilibiliVideo.bv2av_cc, [str])
+        "bv2av": (BilibiliVideo.bv2av_cc, [str]),
+        "download": (BilibiliVideo.download_cc, [str])
     },
     2: {
-        "login": (BilibiliConfig.login_cc, [int, str])
+        "login": (BilibiliConfig.login_cc, [int, str]),
+        "download": (BilibiliVideo.download_cc, [str, str])
+    },
+    3: {
+        "download": (BilibiliVideo.download_cc, [str, str, int])
     }
-})
+}, '''
+使用方法：
+在控制台输入
+python bilibili.py [后接函数名称] [参数,...]
+目前可用的函数以及函数名称：
+
+analyse : 分析视频观看时长
+login : 登录（暂不可用）
+bv2av <bv:str> : bv号转av号
+download <bv:str> [path:str] [quality:int] : 下载视频
+''')
 cc.add_collection(FFMpegCommandCollection())
 cc.compiled(argv)

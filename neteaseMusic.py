@@ -1,5 +1,3 @@
-
-import json
 import time
 import urllib.parse
 from base64 import b64encode

@@ -20,13 +20,14 @@ class CommandFunction:
 
 
 class CommandCollection:
-    def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]]) -> None:
+    def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]], helpInfo: str = None) -> None:
         self.commandList = commandList
+        self.helpInfo = helpInfo
 
 
 class CommandCompiler:
     def __init__(self, commandList: Dict[int, Dict[str, CommandFunction]],
-                 collection: Optional[List[CommandCollection]] = None, help: str = "") -> None:
+                 help: str = "", collection: Optional[List[CommandCollection]] = None) -> None:
         commandList[0]["help"] = CommandFunction(
             self.help, CommandArgument([]))
         self.commandList = commandList
@@ -37,6 +38,7 @@ class CommandCompiler:
 
     def add_collection(self, coll: CommandCollection):
         d = coll.commandList
+        self.helpInfo+=coll.helpInfo
         for i in d:
             self.commandList[i].update(d[i])
 
@@ -64,13 +66,14 @@ class CommandCompiler:
 
 
 class EasyCommandCollection(CommandCollection):
-    def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]]) -> None:
+    def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]], helpInfo: str = None) -> None:
         self.commandList = commandList
+        self.helpInfo = helpInfo
 
 
 class EasyCommandCompiler(CommandCompiler):
     def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]],
-                 collection: Optional[List[EasyCommandCollection]] = None, help: str = "") -> None:
+                 help: str = "", collection: Optional[List[EasyCommandCollection]] = None) -> None:
         commandList[0]["help"] = (self.help, [])
         self.commandList = commandList
         if collection != None:
