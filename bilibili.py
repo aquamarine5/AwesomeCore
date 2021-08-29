@@ -4,10 +4,11 @@ import subprocess
 import time
 from sys import argv
 from typing import Any, Dict, List, Optional, Tuple
-from util import progresser_download
+
 
 import requests
 
+import util
 # github.com/AwesomeCore -> commandCompiler.py
 from commandCompiler import EasyCommandCompiler
 # github.com/AwesomeCore -> config.py
@@ -18,7 +19,10 @@ from ffmpeg import FFMpegCommandCollection, FFMpegController
 from progress import ValuedProgresser
 
 URL_VIDEO_VIEW = "http://api.bilibili.com/x/web-interface/view?bvid=%s"
+URL_BANGUMI_VIEW = "https://api.bilibili.com/pgc/view/web/season?ep_id=%s"
+URL_VIDEO_PAGELIST = "https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp"
 URL_VIDEO_PLAYURL = "https://api.bilibili.com/x/player/playurl?cid=%s&otype=json&type=&quality=16&qn=16&fnver=0&fnval=16&bvid=%s"
+URL_BANGUMI_PLAYURL = "https://api.bilibili.com/pgc/player/web/playurl?qn=64&fnver=0&fnval=80&fourk=1&ep_id=%s"
 URL_USER_HISTORY = "https://api.bilibili.com/x/web-interface/history/cursor?view_at=%s"
 
 
@@ -113,7 +117,7 @@ class BilibiliVideo:
     def bv2av_cc(bvid: str):
         print(BilibiliVideo.bv2av(bvid))
 
-    def download(self, path: str = ".", quality: int = 80):
+    def download(self, path: str = ".", quality: int = 80, playUrl: str = None, basePath: str = None, videoResultName: str = None):
         def get_ffmpeg_path() -> Optional[str]:
             if FFMpegController.check_is_installed():
                 return FFMpegController.get_ffmpeg().path
@@ -141,13 +145,15 @@ class BilibiliVideo:
         }
         if (ffmpegPath := get_ffmpeg_path()) == None:
             return
-        playc = requests.get(URL_VIDEO_PLAYURL % (self.cid, self.bvid)).json()
-        playcd = playc["data"]
+        playc = requests.get(URL_VIDEO_PLAYURL % (
+            self.cid, self.bvid) if playUrl == None else playUrl).json()
+        print(playc)
+        playcd = playc["result"] if "result" in playc else playc["data"]
         if quality not in playcd["accept_quality"]:
             raise ValueError()
         if quality == 116:
             raise ValueError()
-        basePath = f"{path}/{self.bvid}"
+        basePath = f"{path}/{self.bvid}" if basePath == None else basePath
         qualityIndex = playcd["accept_quality"].index(quality)
         qualityDesc = playcd["accept_description"][qualityIndex]
         videoDash = playcd["dash"]["video"][qualityIndex]
@@ -162,12 +168,12 @@ class BilibiliVideo:
         audioUrl: str = audioDash["baseUrl"]
         audioType = audioUrl.split("?")[0].split(".")[-1:][0]
         audioPath = f"{basePath}_audio.{'mp4' if audioType=='m4s' else audioType}"
-        videoResultPath = f"{basePath}_video_mix.mp4"
+        videoResultPath = f"{self.title if videoResultName==None else videoResultName}.mp4"
         audioDecodePath = f'{basePath}_audio_decode.aac'
-        progresser_download(videoUrl, videoPath,
-                            isParentPath=False, header=header)
-        progresser_download(audioUrl, audioPath,
-                            isParentPath=False, header=header)
+        util.progresser_download(videoUrl, videoPath,
+                                 isParentPath=False, header=header, isGetRequestsHead=False)
+        util.progresser_download(audioUrl, audioPath,
+                                 isParentPath=False, header=header, isGetRequestsHead=False)
 
         if not is_overwrite_file(audioDecodePath):
             return
@@ -185,8 +191,39 @@ class BilibiliVideo:
             f"{self.bvid}下载完成，质量：{qualityDesc}，地址：\n{os.path.abspath(videoResultPath)}")
 
     @staticmethod
+    def download_page_cc(bvid: str, p: int, path: str = ".", quality: int = 80):
+        responce = requests.get(URL_VIDEO_PAGELIST % bvid).json()
+        bv = BilibiliVideo(bvid)
+        if p < len(responce["data"]):
+            cid = int(responce["data"][p-1]["cid"])
+            bv.cid = cid
+        bv.download(path, quality)
+
+    @staticmethod
     def download_cc(bvid: str, path: str = ".", quality: int = 80):
         BilibiliVideo(bvid).download(path, quality)
+
+
+class BilibiliBangumiVideo:
+    def __init__(self, ep_id: int) -> None:
+        self.content: dict = requests.get(URL_BANGUMI_VIEW % ep_id).json()
+        self.title = self.content["result"]["title"]
+        episodes = {ep["id"]: ep for ep in self.content["result"]["episodes"]}
+        self.episode = episodes[ep_id]
+        self.aid = self.episode["aid"]
+        self.bvid = self.episode["bvid"]
+        self.cid = self.episode["cid"]
+        self.epid = ep_id
+        self.long_title = self.episode["long_title"]
+        self.etitle = self.episode["share_copy"]
+
+    def download(self):
+        BilibiliVideo.download(None, ".", 80, URL_BANGUMI_PLAYURL %
+                               self.epid, f"./ep{self.epid}", self.etitle)
+
+    @staticmethod
+    def download_cc(ep_id: int):
+        BilibiliBangumiVideo(ep_id).download()
 
 
 class BilibiliUser:
@@ -251,11 +288,13 @@ cc = EasyCommandCompiler({
     },
     1: {
         "bv2av": (BilibiliVideo.bv2av_cc, [str]),
-        "download": (BilibiliVideo.download_cc, [str])
+        "download": (BilibiliVideo.download_cc, [str]),
+        "download-ep": (BilibiliBangumiVideo.download_cc, [int])
     },
     2: {
         "login": (BilibiliConfig.login_cc, [int, str]),
-        "download": (BilibiliVideo.download_cc, [str, str])
+        "download": (BilibiliVideo.download_cc, [str, str]),
+        "download-p": (BilibiliVideo.download_page_cc, [str, int])
     },
     3: {
         "download": (BilibiliVideo.download_cc, [str, str, int])
