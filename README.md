@@ -1,4 +1,7 @@
 # AwesomeCore
+[![GitHub repo size](https://img.shields.io/github/repo-size/awesomehhhhh/AwesomeCore)](https://github.com/awesomehhhhh/AwesomeCore)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/awesomehhhhh/AwesomeCore)]()
+[![Last commit](https://img.shields.io/github/last-commit/awesomehhhhh/AwesomeCore)]()
 ## NeteaseMusic
 - 支持通过网易云的加密算法（AES，最后有params和encSecKey）进行POST （`NeteaseMusicMain.neteaseMusicEncrypt()`）
 - 下载音乐（128kbps）（`NeteaseMusicSong(id).download()`）以及可选的附带元数据版本（`NeteaseMusicSong(id).download_with_metadata()`）
