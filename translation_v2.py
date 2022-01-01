@@ -1,6 +1,7 @@
 import hashlib
 from progress import Progresser
 import random
+import sys
 import urllib
 from time import sleep
 from json import loads
@@ -9,11 +10,12 @@ from typing import *
 import requests
 from googletrans import Translator
 from googletrans.constants import LANGUAGES
-dicGoogle = {"中文": "zh-cn", "简体中文": "zh-cn", "繁体中文": "zh-tw", "日语": "ja", "英语": "en",
-                   "英文": "en", "德语": "de", "加泰罗尼亚语": "ca", "塔吉克语": "tg", "孟加拉语": "bn", "法语": "fr",
-                   "犹太语": "yi", "依地语": "yi", "芬兰语": "fi", "葡萄牙语": "pt", "保加利亚": "bg", "保加利亚语": "bg",
-                   "祖鲁语": "zu", "朝鲜语": "ko", "韩国语": "ko", "韩语": "ko", "库尔德语": "ku", "南非语": "af", "西班牙语": "es",
-                   "象形": "am", "阿姆哈拉文": "am", "阿拉伯语": "ar"}
+dicGoogle = {
+            "中文": "zh-cn", "简体中文": "zh-cn", "繁体中文": "zh-tw", "日语": "ja", "英语": "en",
+            "英文": "en", "德语": "de", "加泰罗尼亚语": "ca", "塔吉克语": "tg", "孟加拉语": "bn", "法语": "fr",
+            "犹太语": "yi", "依地语": "yi", "芬兰语": "fi", "葡萄牙语": "pt", "保加利亚": "bg", "保加利亚语": "bg",
+            "祖鲁语": "zu", "朝鲜语": "ko", "韩国语": "ko", "韩语": "ko", "库尔德语": "ku", "南非语": "af", "西班牙语": "es",
+            "象形": "am", "阿姆哈拉文": "am", "阿拉伯语": "ar"}
 dicBaidu = {
     "韩语": "kor", "韩国": "kor", "葡萄牙语": "pt", "葡萄牙": "pt", "希腊语": "el", "希腊": "el", "保加利亚语": "bul",
     "保加利亚": "bul", "文言文": "wyw", "粤语": "yue", "阿拉伯语": "ara", "阿拉伯": "ara", "德语": "de", "荷兰语": "nl",
@@ -21,11 +23,11 @@ dicBaidu = {
 
 
 class translationLanguage():
-    def __init__(self, language: str, engine: str = "b") -> None:
+    def __init__(self, language: str, engine: str = "b",withoutError:bool=False) -> None:
         self.engine = engine
         self.inlang = language
         if language not in ["文言文中文", "粤语中文"]:
-            self.lang = self.toLangKey(language, engine)
+            self.lang = self.toLangKey(language, engine,withoutError)
 
     def __str__(self) -> str:
         return self.lang
@@ -37,12 +39,14 @@ class translationLanguage():
             pass
 
     @staticmethod
-    def toLangKey(language: str, engine: str):
+    def toLangKey(language: str, engine: str,withoutError:bool=False):
         if engine not in ['g', 'b']:
             raise ValueError("引擎必须是b（百度）或g（谷歌）")
         if engine == "g":
             if language not in dicGoogle:
                 if language not in LANGUAGES:
+                    if withoutError:
+                        print("暂时不支持此语言，如需要查看全部支持的语言请发送AwesomeBot:trsHelp")
                     raise ValueError('错误语言')
                 else:
                     lang = language
@@ -50,6 +54,8 @@ class translationLanguage():
                 lang = dicGoogle[language]
         elif engine == "b":
             if language not in dicBaidu:
+                if withoutError:
+                    print("暂时不支持此语言，如需要查看全部支持的语言请发送AwesomeBot:trsHelp")
                 raise ValueError("错误语言")
             else:
                 lang = dicBaidu[language]
@@ -86,8 +92,9 @@ class translation():
         sign = appid + str(info) + str(salt) + secretKey
         sign = hashlib.md5(sign.encode()).hexdigest()
         myurl = f"http://api.fanyi.baidu.com/api/trans/vip/translate?appid={appid}&q={urllib.parse.quote(info)}&from={fromLang}&to={toLang}&salt={salt}&sign={sign}"
-        return loads(requests.get(myurl).text.encode(
-            "utf-8").decode("unicode_escape"))["trans_result"][0]["dst"]
+        r=loads(requests.get(myurl).text.encode(
+            "utf-8").decode("unicode_escape"))
+        return r["trans_result"][0]["dst"]
 
     @staticmethod
     def translate_google(toLang: translationLanguage, content: str):
@@ -111,12 +118,12 @@ def translate(engine: str, targetLang: translationLanguage, text: str) -> str:
 
 
 def translate_crazy(engine: str, targetLang: translationLanguage, textLang: translationLanguage, text: str, num: int, show_slider: bool = True) -> str:
-    print("输入的翻译内容：", text, "\n")
+    #print("输入的翻译内容: ", text, "\n")
     bufferResult = text
     lastResult = text
     p: Progresser = Progresser(num*2)
     if show_slider:
-        p.print_slider_complex_animation(0)
+        p.pslider_complex_animation(0)
     for i in range(num):
         bufferResult = translate(engine, targetLang, bufferResult)
         if engine == "b":
@@ -125,20 +132,25 @@ def translate_crazy(engine: str, targetLang: translationLanguage, textLang: tran
             p.print_slider_complex_animation_next()
         bufferResult = translate(engine, textLang, bufferResult)
         if bufferResult == lastResult:
-            print("翻译结果相同，取消循环翻译")
+            #print("翻译结果相同，取消循环翻译")
             break
         lastResult = bufferResult
-        if engine == "b":
-            sleep(1)
-        print(i+1, bufferResult)
+        #print(i+1, bufferResult)
         if show_slider:
             p.print_slider_complex_animation_next()
 
     if show_slider:
-        p.print_slider_complex(p.length)
+        p.pslider_complex(p.length)
     return bufferResult
 
-
-print("\n生草结果：", translate_crazy("g", translationLanguage("英文", "g"),
-                                 translationLanguage("中文", "g"),
-                                 "活动期间，限定五星角色「红叶逐荒波·枫原万叶(风)」的祈愿获取概率将大幅提升！活动期间，四星角色「棘冠恩典·罗莎莉亚(冰)」「命运试金石·班尼特(火)」「狼少年·雷泽(雷)」的祈愿获取概率将大幅提升！以上角色中，限定角色不会进入「奔行世间」常驻祈愿。", 10, False))
+if __name__=="__main__":
+    rune=sys.argv
+    if rune[1].startswith("translate_"):
+        try:
+            trs=translationLanguage(rune[2])
+        except ValueError:
+            pass
+        finally:
+            print(translate(rune[1][-1],trs," ".join(rune[3:])))
+    elif rune[1]=="translateCrazyGlass":
+        print(translate_crazy("g",translationLanguage("中文","g"),translationLanguage("英语","g")," ".join(rune[3:]),10,show_slider=False))

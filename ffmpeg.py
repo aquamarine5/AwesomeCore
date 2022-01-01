@@ -31,7 +31,7 @@ class FFMpegController:
     @staticmethod
     def check_is_installed_cc():
         if FFMpegConfig.isDefined():
-            print(f"已安装，地址：{FFMpegConfig.read()}")
+            print(f"已安装，地址: {FFMpegConfig.read()}")
         else:
             print("未安装或未绑定，使用ffmpeg-bind绑定或ffmpeg-download在线下载安装")
 
@@ -76,7 +76,7 @@ ffmpeg-bind <path:str> 绑定ffmpeg路径
 
 
 class FFMpegConfig:
-    file_path = "FFMpegConfig.json"
+    file_path = "D:\Program Source\AwesomeCore_git\FFMpegConfig.json"
 
     @classmethod
     def add(cls, path: str):

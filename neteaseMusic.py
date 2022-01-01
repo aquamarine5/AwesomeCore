@@ -111,7 +111,7 @@ class NeteaseMusicConfigUser(BaseConfigUser):
 
 class NeteaseMusicConfigBase(BaseConfig):
     def __init__(self) -> None:
-        self.file_path = "NeteaseMusic.json"
+        self.file_path = r"D:\Program Source\AwesomeCore_git\NeteaseMusic.json"
         self.type = NeteaseMusicConfigUser
 
     @staticmethod
@@ -381,7 +381,7 @@ class NeteaseMusicUser:
             t += 1
             q = NeteaseMusicMain.neteaseMusicPost(URL_USER_LOGIN, cc)
             time.sleep(0.5)
-            print("次数：", t, q)
+            print("次数: ", t, q)
             if q["code"] == 802:
                 break
             elif q["code"] == 800:
@@ -396,7 +396,7 @@ class NeteaseMusicUser:
             time.sleep(0.5)
             re = w.post(URL_USER_LOGIN, NeteaseMusicMain.join(q),
                         headers={"Content-Type": "application/x-www-form-urlencoded"}).json()
-            print("次数：", t, re)
+            print("次数: ", t, re)
             if re["code"] == 803:
                 break
             elif re["code"] == -460:
@@ -411,7 +411,7 @@ class NeteaseMusicUser:
             "MUSIC_U"), "NMTID": w.cookies.get("NMTID"), "__csrf": csrf}
         co["isDefault"] = NeteaseMusicConfig.get_all_config() == []
         f = NeteaseMusicConfigUser.createWithDict(co)
-        print(f"要登录的账号是：{f.nickName}({f.id}) cookie: {f.toCookie()}")
+        print(f"要登录的账号是: {f.nickName}({f.id}) cookie: {f.toCookie()}")
         NeteaseMusicConfig.login(f)
         print("登录成功")
         print("已设置为默认账户" if co["isDefault"] else "")
@@ -438,7 +438,7 @@ class NeteaseMusicUser:
             v.updateLastSignDate(t)
             print("签到成功")
         else:
-            print(f"签到失败，详情：{r}")
+            print(f"签到失败，详情: {r}")
             if r["code"] == -2:
                 v.updateLastSignDate(t)
 
@@ -510,10 +510,10 @@ class NeteaseMusicRecord:
         if isSlimp and len(data) == 100:
             s = slimp(data[-1]["playCount"], self.allListen, t//len(data))
             a = s+alt
-            print("一共听了：", second_format(alt), "+",
+            print("一共听了: ", second_format(alt), "+",
                   second_format(s), "=", second_format(a), "小时的音乐")
         else:
-            print("一共听了：", second_format(alt), "小时的音乐")
+            print("一共听了: ", second_format(alt), "小时的音乐")
             print(f"本周平均每天听 {second_format(alt//7)} 小时的音乐")
         return alt
     #######################################
@@ -525,6 +525,7 @@ class NeteaseMusicRecord:
         self.analyse_week()
         self.analyse_all()
         self.alltime_week()
+        print("AwesomeCore.NeteaseMusic 提供听歌时长分析服务")
         self.alltime_all()
         print(f"一共听了 {self.allListen} 首歌")
 
@@ -570,7 +571,7 @@ class NeteaseMusicRecord:
             songData.append(i)
         ts = tData.copy()
         ts.sort()
-        for i in range(10):
+        for i in range(20):
             time = ts[-(i+1)]
             index = tData.index(time)
             song = songData[index]
@@ -612,10 +613,12 @@ cc = EasyCommandCompiler({
         "account-add": (NeteaseMusicConfig.login_cc, [int, str, str])
     }
 }, '''
-使用方法：
+网易云音乐插件
+Created by @Awesomehhhhh(github.com/awesomehhhhh/AwesomeCore)
+使用方法: 
 在控制台输入
 python neteaseMusic.py [后接函数名称] [参数,...]
-目前可用的函数以及函数名称：
+目前可用的函数以及函数名称: 
 
 sign - 签到
 account-login - 同account-login-qrcode

@@ -188,7 +188,7 @@ class BilibiliVideo:
         os.remove(audioPath)
         os.remove(videoPath)
         print(
-            f"{self.bvid}下载完成，质量：{qualityDesc}，地址：\n{os.path.abspath(videoResultPath)}")
+            f"{self.bvid}下载完成，质量: {qualityDesc}，地址: \n{os.path.abspath(videoResultPath)}")
 
     @staticmethod
     def download_page_cc(bvid: str, p: int, path: str = ".", quality: int = 80):
@@ -300,10 +300,10 @@ cc = EasyCommandCompiler({
         "download": (BilibiliVideo.download_cc, [str, str, int])
     }
 }, '''
-使用方法：
+使用方法: 
 在控制台输入
 python bilibili.py [后接函数名称] [参数,...]
-目前可用的函数以及函数名称：
+目前可用的函数以及函数名称: 
 
 analyse : 分析视频观看时长
 login : 登录（暂不可用）

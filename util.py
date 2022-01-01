@@ -31,7 +31,7 @@ def progresser_download(url: str, downloadPath: str, streamBytes: int = 1024, is
         filePath = downloadPath
     responce = requests.get(url, stream=True, headers=header)
     responceLength = int(responce.headers["content-length"])
-    print(f"文件大小： {bytes_format(responceLength)}")
+    print(f"文件大小:  {bytes_format(responceLength)}")
     print(responce.status_code)
     downloadSize: int = 0
     progresser = Progresser(responceLength)

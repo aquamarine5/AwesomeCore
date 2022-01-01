@@ -5,7 +5,7 @@ import re
 import sys
 import time
 import urllib
-from json import loads
+from json import loads,decoder
 
 import requests
 from bs4 import BeautifulSoup
@@ -114,11 +114,11 @@ class webapi:
                 if not outr["status"] == 0:
                     self.text = outr["message"]
                 elif outr["result"]["addressComponent"]["country_code"] == -1:
-                    self.text = "暂不支持查找此地，例子：\n pos 39.983424,116.3229"
+                    self.text = "暂不支持查找此地，例子: \n pos 39.983424,116.3229"
                 else:
                     out = outr["result"]["addressComponent"]
-                    self.text = "位置： " + out["country"] + "  " + out["province"] + "  " + out["city"] + \
-                                " " + out["district"] + "\n" + "地址： " + \
+                    self.text = "位置:  " + out["country"] + "  " + out["province"] + "  " + out["city"] + \
+                                " " + out["district"] + "\n" + "地址:  " + \
                                 outr["result"]["formatted_address"]
             #######################################################
             elif arg[1] == "photo":  # 每日一图
@@ -187,15 +187,15 @@ class webapi:
                 sgSg = eval(requests.get(urlSg).text.replace(
                     "window.sogou.sug", "").replace(";", ""))[0][1]
                 sg360 = loads(requests.get(url360).text)["result"]
-                self.text = "这是%s的搜索建议：\n" % arg[2]
-                self.text += "-> 百度：\n"
+                self.text = "这是%s的搜索建议: \n" % arg[2]
+                self.text += "-> 百度: \n"
                 for bd in range(len(sgBd)):
                     if bd >= 10:
                         break
                     self.text += sgBd[bd]
                     if not bd + 1 == len(sgBd):
                         self.text += "，"
-                self.text += "\n-> 必应：\n"
+                self.text += "\n-> 必应: \n"
                 for bing in range(len(sgBing)):
                     if bing >= 10:
                         break
@@ -206,14 +206,14 @@ class webapi:
                     self.text += sgBing[bing].get_text()
                     if not bing + 1 == len(sgBing):
                         self.text += "，"
-                self.text += "\n-> 搜狗：\n"
+                self.text += "\n-> 搜狗: \n"
                 for sogou in range(len(sgSg)):
                     if sogou >= 10:
                         break
                     self.text += sgSg[sogou]
                     if not sogou + 1 == len(sgSg):
                         self.text += "，"
-                self.text += "\n-> 360搜索：\n"
+                self.text += "\n-> 360搜索: \n"
                 for s360 in range(len(sg360)):
                     if s360 >= 10:
                         break
@@ -251,7 +251,7 @@ class webapi:
                 cookir = {"BDUSS": app}
                 o = loads(requests.get(urlNews, cookies=cookir).text)
                 o = o["data"][0]["news"]
-                self.text = f"这是{arg[2]}的今年新闻：\n"
+                self.text = f"这是{arg[2]}的今年新闻: \n"
                 if len(o) == 0:
                     self.text += "\n无相关新闻"
                 for i in range(len(o)):
@@ -280,9 +280,23 @@ class webapi:
                             break
             elif arg[1] == "imageSearch":
                 url = "https://ai.baidu.com/aidemo"
-                _ = loads(requests.post(
-                    url, data=f"image&image_url={arg[2]}&type=advanced_general&baike_num=1",
-                    headers=forBaiduHeader).text)
+                baiduHeader = forBaiduHeader.copy()
+                baiduHeader["Referer"] = "https://ai.baidu.com/tech/imagerecognition/general"
+                try:
+                    data = loads(requests.post(
+                        url, data=f"image&image_url={arg[2]}&type=advanced_general&baike_num=1",
+                        headers=baiduHeader).text)["data"]
+                    if "error_msg" in data:
+                        self.text=data["error_msg"]
+                        return
+                    else:
+                        data=data["result"]
+                except decoder.JSONDecodeError:
+                    self.text="暂时不支持动图（GIF）。"
+                    return
+                self.text = f'检测结果前五是: {data[0]["keyword"]}（{round(float(data[0]["score"])*100,2)}%），{data[1]["keyword"]}（{round(float(data[1]["score"])*100,2)}%），'\
+                    f'{data[2]["keyword"]}（{round(float(data[2]["score"])*100,2)}%），{data[3]["keyword"]}'\
+                    f'（{round(float(data[3]["score"])*100,2)}%），{data[4]["keyword"]}（{round(float(data[4]["score"])*100,2)}%）'
 
         #######################################################
         elif len(arg) == 4:
@@ -294,9 +308,9 @@ class webapi:
                         return
                     urlTs = f"http://dict.iciba.com/dictionary/word/suggestion?client=6&is_need_mean=1&nums=10&word={arg[2]}"
                     Ts = loads(requests.get(urlTs).text)
-                    self.text = f"这是{arg[2]}的相近词解释：\n"
+                    self.text = f"这是{arg[2]}的相近词解释: \n"
                     for i in Ts["message"]:
-                        self.text += f"{i['key']} ：{i['paraphrase']}\n"
+                        self.text += f"{i['key']} : {i['paraphrase']}\n"
             #######################################################
             elif arg[1] == "zyb":  # 作业帮
                 urlBd = f"http://www.baidu.com/s?ie=UTF-8&wd=site:www.zybang.com%20{arg[2]}"
@@ -335,7 +349,7 @@ class webapi:
                     else:
                         endtext += ab[j]["src"] + "\n"
                     count += 1
-                self.text = title + "的答案是：\n" + answer
+                self.text = title + "的答案是: \n" + answer
                 self.text = re.sub("&nbsp;", "", self.text)
                 self.text = re.sub("&amp;", "&", self.text)
                 self.text = re.sub("&gt;", ">", self.text)
@@ -371,14 +385,14 @@ class webapi:
                       "disable_hot%3D1%26filter_type%3Drealtimehot&lfid=OPPO_qjs"
                 o = loads(requests.get(url).text)
                 o = o["cards"][0]["card_group"]
-                self.text = "微博热搜：\n"
+                self.text = "微博热搜: \n"
                 for i in range(len(o)):
                     self.text += str(i + 1) + " " + o[i]["desc"] + "\n"
             #######################################################
             elif arg[1] == "hotword":  # B站热词
                 url = "http://s.search.bilibili.com/main/hotword"
                 o = loads(requests.get(url).text)["list"]
-                self.text = "B站热词：\n"
+                self.text = "B站热词: \n"
                 for i in range(len(o)):
                     self.text = self.text + o[i]["keyword"] + "，"
         if len(arg) != 1:
@@ -480,7 +494,7 @@ class webapi:
                         dest = "ar"
                     else:
                         if arg[2] not in LANGUAGES:
-                            self.text = "错误的语言，如需翻译文言文等中文变体请使用：\n 翻译 [需要翻译文本] 文言文\n文言文转中文请使用：翻译 [需要翻译文本] 文言文中文" \
+                            self.text = "错误的语言，如需翻译文言文等中文变体请使用: \n 翻译 [需要翻译文本] 文言文\n文言文转中文请使用: 翻译 [需要翻译文本] 文言文中文" \
                                         "\n空格请用+代替谢谢"
                             self.textWrite = True
                             return

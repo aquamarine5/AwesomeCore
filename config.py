@@ -100,7 +100,7 @@ class BaseConfig:
 
     def get_all_config_cc(self):
         r = self.get_all_config()
-        print("存储的所有账户：")
+        print("存储的所有账户: ")
         if r == []:
             print("没有任何账户")
         for i in range(len(r)):

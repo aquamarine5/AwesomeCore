@@ -75,8 +75,9 @@ class BilibiliFace:
                     return (n, r)
 
 
-class WeChatFriendDialogMaker:
+class WeChatStartDialogMaster:
     def __init__(self, length: int = 8) -> None:
+        self.length = length
         self.config = WeChatConfigMaster().friendDialog
         config = self.config
         self.image = Image.new("RGB", (config.width, config.headHeight+config.height *
@@ -89,16 +90,41 @@ class WeChatFriendDialogMaker:
         self.font33 = ImageFont.truetype(
             ".\SourceHanSansSC-VF.otf", 33)
         self.font33.set_variation_by_name('Regular')
-        self.p: Progresser = Progresser(length)
-        self.b = BilibiliFace()
         self.tm = strftime("%H:%M")
-        for i in range(length):
-            self.instanceDialogue(i)
+
+    def instanceDialogue(self, index: int, faceImageSource: Union[str, Image.Image], name: str, detail: str, time: str = None):
+        config = self.config
+        offset = config.headHeight + config.height*index
+        faceImage = Image.open(faceImageSource) if isinstance(faceImageSource, str) else faceImageSource.resize(
+            (config.faceLength, config.faceLength), Image.ANTIALIAS)
+        self.image.paste(faceImage, (config.faceLeft, offset+config.faceUp))
+        draw = ImageDraw.Draw(self.image)
+        draw.text((config.nameLeft, config.nameUp+offset),
+                  name, fill=(10, 10, 10), font=self.font42)
+        draw.text((config.detailLeft, config.detailUp+offset),
+                  detail, fill=(160, 160, 160), font=self.font33)
+        draw.text((config.timeLeft, config.timeUp+offset),
+                  text=self.tm if time == None else time, fill=(160, 160, 160), font=self.font33)
+        draw.line([(config.splitLineLeft, (config.height-2)+offset),
+                   (config.width, (config.height-2)+offset)],
+                  fill=(239, 239, 239), width=config.splitLineThickness)
+
+
+class WeChatStartDialogForeachInstancer(WeChatStartDialogMaster):
+    def __init__(self, length: int, detail: str) -> None:
+        super().__init__(length=length)
+        self.b = BilibiliFace()
+        self.detail = detail
+        self.p: Progresser = Progresser(length)
+
+    def foreachInstance(self):
+        for i in range(self.length):
+            self.instanceDialogue(i, self.detail)
+            self.p.print_slider_complex_animation_next()
         self.image.show()
         self.image.save("./Result.jpg")
 
     def instanceDialogue(self, index: int):
-        config = self.config
         try:
             c = self.b.randomGetUserContent()
             name = c[0]
@@ -107,23 +133,9 @@ class WeChatFriendDialogMaker:
             self.image.show()
             self.image.save("./Result.jpg")
             print(
-                f"\033[0;31m如出现-412请求被拦截可稍等重新运行脚本，出错前已存储之前加载完毕的数据于：{os.path.abspath('.//Face')}\\bilibiliUserContentDatabase.json\033[0m")
+                f"\033[0;31m如出现-412请求被拦截可稍等重新运行脚本，出错前已存储之前加载完毕的数据于: {os.path.abspath('.//Face')}\\bilibiliUserContentDatabase.json\033[0m")
             raise err
-        offset = config.headHeight + config.height*index
-        faceImage = Image.open(f".\Face\{id}.jpg").resize(
-            (config.faceLength, config.faceLength), Image.ANTIALIAS)
-        self.image.paste(faceImage, (config.faceLeft, offset+config.faceUp))
-        draw = ImageDraw.Draw(self.image)
-        draw.text((config.nameLeft, config.nameUp+offset),
-                  name, fill=(10, 10, 10), font=self.font42)
-        draw.text((config.detailLeft, config.detailUp+offset),
-                  "[链接] 汇总|全国青少年机器人(三级)真题...", fill=(160, 160, 160), font=self.font33)
-        draw.text((config.timeLeft, config.timeUp+offset),
-                  text=self.tm, fill=(160, 160, 160), font=self.font33)
-        draw.line([(config.splitLineLeft, (config.height-2)+offset),
-                   (config.width, (config.height-2)+offset)],
-                  fill=(239, 239, 239), width=config.splitLineThickness)
-        self.p.print_slider_complex_animation_next()
+        return super().instanceDialogue(index, Image.open(f"./Face/{id}.jpg"), name, self.detail, strftime("%H:%M"))
 
 
-WeChatFriendDialogMaker()
+WeChatStartDialogForeachInstancer(8, "诶嘿~").foreachInstance()

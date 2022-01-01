@@ -21,7 +21,7 @@ class ArgsNotCorrectException(BaseException):
         self.message: str = message
 
     def __str__(self) -> str:
-        return f"输入参数数量不正确，应为：{self.message}个"
+        return f"输入参数数量不正确，应为: {self.message}个"
 
 
 def _checkArgsCountCorrect(arg: List[str], num: int) -> bool:
@@ -134,7 +134,7 @@ class translation():
                 dest = "ar"
             else:
                 if arg[2] not in LANGUAGES:
-                    self.text = "错误的语言，如需翻译文言文等中文变体请使用：\n 翻译 [需要翻译文本] 文言文\n文言文转中文请使用：翻译 [需要翻译文本] 文言文中文" \
+                    self.text = "错误的语言，如需翻译文言文等中文变体请使用: \n 翻译 [需要翻译文本] 文言文\n文言文转中文请使用: 翻译 [需要翻译文本] 文言文中文" \
                                 "\n空格请用+代替谢谢"
                     return
                 else:
@@ -166,7 +166,7 @@ def weather_report(arg: List[str]) -> str:
     temperature = result["weather"]["temperature"]
     weather = result["weather"]["weather"]
     pm25 = f'{result["ps_pm25"]["level"]} {result["ps_pm25"]["ps_pm25"]}'
-    return f"{arg[2]}{arg[3]}天气是：{weather}，{temperature}，空气质量为{pm25}"
+    return f"{arg[2]}{arg[3]}天气是: {weather}，{temperature}，空气质量为{pm25}"
 ########################################
 
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         elif argKey == "tts":
             tts(arg)
         else:
-            raise ValueError("函数标识只能是：weather或translate或tts")
+            raise ValueError("函数标识只能是: weather或translate或tts")
         print(result)
     else:
         print(help("#"))
