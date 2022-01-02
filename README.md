@@ -1,6 +1,6 @@
 # AwesomeCore
 [![GitHub repo size](https://img.shields.io/github/repo-size/awesomehhhhh/AwesomeCore)](https://github.com/awesomehhhhh/AwesomeCore)
-[![Code lines](https://github.com/awesomehhhhh/AwesomeCore)](https://github.com/awesomehhhhh/AwesomeCore)
+[![Code lines](https://img.shields.io/tokei/lines/github/awesomehhhhh/AwesomeKits)](https://github.com/awesomehhhhh/AwesomeCore)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/awesomehhhhh/AwesomeCore)]()
 [![Last commit](https://img.shields.io/github/last-commit/awesomehhhhh/AwesomeCore)]()
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/awesomehhhhh/AwesomeCore.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awesomehhhhh/AwesomeCore/context:python)
