@@ -9,7 +9,7 @@
 - 下载音乐（128kbps）（`NeteaseMusicSong(id).download()`）以及可选的附带元数据版本（`NeteaseMusicSong(id).download_with_metadata()`）
 - 下载专辑或歌单的全部音乐（`NeteaseMusicWebLoader(id).download_all()`）
 - 扫码登录获取cookies（`NeteaseMusicUser.login()`）
-- 分析每周/全部所听歌曲（每首歌听了多少次，一共听了多久，这周多少时间在听歌）（`NeteaseMusicUser().analyse()` & `NeteaseMusicUser().alltime()`）
+- **分析每周/全部所听歌曲（每首歌听了多少次，一共听了多久，这周多少时间在听歌）（`NeteaseMusicUser().analyse()` & `NeteaseMusicUser().alltime()`）**
 - 签到（`NeteaseMusicUser().sign()`）
 ## Progress
 - 主要为`Progress.Progresser`类，使用`Progress.Progresser(length)`指定进度条长度
