@@ -3,7 +3,8 @@
 [![Code lines](https://img.shields.io/tokei/lines/github/awesomehhhhh/AwesomeCore)](https://github.com/awesomehhhhh/AwesomeCore)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/awesomehhhhh/AwesomeCore)]()
 [![Last commit](https://img.shields.io/github/last-commit/awesomehhhhh/AwesomeCore)]()
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/awesomehhhhh/AwesomeCore.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awesomehhhhh/AwesomeCore/context:python)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/awesomehhhhh/AwesomeCore.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awesomehhhhh/AwesomeCore/context:python)  
+AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具。其中的某些工具可能不会维护。  
 ## NeteaseMusic
 - 支持通过网易云的加密算法（AES，最后有params和encSecKey）进行POST （`NeteaseMusicMain.neteaseMusicEncrypt()`）
 - 下载音乐（128kbps）（`NeteaseMusicSong(id).download()`）以及可选的附带元数据版本（`NeteaseMusicSong(id).download_with_metadata()`）
@@ -16,11 +17,6 @@
 - 通常使用`Progresser().print_slider_complex_animation_next()`来实现动态进度条
 - `Progresser().print_slider_complex_animation()`可以自定义进度条样式
 - TODO：修复ETA
-## Webapi
-- 详见[awesomehhhhh/AwesomeBot](github.com/awesomehhhhh/AwesomeBot)
-## Leet-code
-- 难是真难
-- Reference: [力扣](leetcode-cn.com)
 ## translation_v1 & v2
 ### v1
 - 仅用于`Webapi.__init__() -> "trs"`中，不推荐使用
@@ -37,3 +33,8 @@ CommandCompiler({
     1:{
       "b":CommandFunction(b,CommandArgument([int]))}})```
 - `commandCompiler.EasyCommandCompiler()`可以更快编写，替代了`CommandFunction`和`CommandArgument`
+## Webapi
+- 详见[awesomehhhhh/AwesomeBot](github.com/awesomehhhhh/AwesomeBot)
+## Leet-code
+- 难是真难
+- Reference: [力扣](leetcode-cn.com)
