@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from time import sleep, time, strftime
+from time import sleep, strftime
 from typing import Tuple, Union
 
 import requests
@@ -104,7 +104,7 @@ class WeChatStartDialogMaster:
         draw.text((config.detailLeft, config.detailUp+offset),
                   detail, fill=(160, 160, 160), font=self.font33)
         draw.text((config.timeLeft, config.timeUp+offset),
-                  text=self.tm if time == None else time, fill=(160, 160, 160), font=self.font33)
+                  text=self.tm if time is None else time, fill=(160, 160, 160), font=self.font33)
         draw.line([(config.splitLineLeft, (config.height-2)+offset),
                    (config.width, (config.height-2)+offset)],
                   fill=(239, 239, 239), width=config.splitLineThickness)
@@ -119,7 +119,7 @@ class WeChatStartDialogForeachInstancer(WeChatStartDialogMaster):
 
     def foreachInstance(self):
         for i in range(self.length):
-            self.instanceDialogue(i, self.detail)
+            self.instanceDialogue(i)
             self.p.print_slider_complex_animation_next()
         self.image.show()
         self.image.save("./Result.jpg")

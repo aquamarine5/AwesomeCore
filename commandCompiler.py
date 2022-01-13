@@ -67,8 +67,7 @@ class CommandCompiler:
 
 class EasyCommandCollection(CommandCollection):
     def __init__(self, commandList: Dict[int, Dict[str, Tuple[Callable, List[Type]]]], helpInfo: str = None) -> None:
-        self.commandList = commandList
-        self.helpInfo = helpInfo
+        super().__init__(commandList,helpInfo)
 
 
 class EasyCommandCompiler(CommandCompiler):

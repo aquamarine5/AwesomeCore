@@ -101,14 +101,14 @@ class atoi:
                         if i == "+":
                             if ro or readingNumber or rot:
                                 break
-                            if not ro and readingNumber:
+                            if (not ro) and readingNumber:
                                 break
                             isPositive = True
                             ro = True
                         elif i == "-":
                             if ro or readingNumber or rot:
                                 break
-                            if not ro and readingNumber:
+                            if (not ro) and readingNumber:
                                 break
                             isPositive = False
                             ro = True
@@ -477,7 +477,6 @@ class RegularExpressionMatching:
         def isMatch(self, s: str, p: str) -> bool:
             l = list(s)
             x = len(p)
-            v = len(l)
             b = None
             m = 0
             if p.count(".") == 0 and p.count("*") == 0 and p != s:

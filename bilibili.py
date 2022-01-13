@@ -1,5 +1,7 @@
+import json
 import math
 import os
+import random
 import subprocess
 import time
 from sys import argv
@@ -143,17 +145,17 @@ class BilibiliVideo:
             "Referer": "http://player.bilibili.com/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.55"
         }
-        if (ffmpegPath := get_ffmpeg_path()) == None:
+        if (ffmpegPath := get_ffmpeg_path()) is None:
             return
         playc = requests.get(URL_VIDEO_PLAYURL % (
-            self.cid, self.bvid) if playUrl == None else playUrl).json()
+            self.cid, self.bvid) if playUrl is None else playUrl).json()
         print(playc)
         playcd = playc["result"] if "result" in playc else playc["data"]
         if quality not in playcd["accept_quality"]:
             raise ValueError()
         if quality == 116:
             raise ValueError()
-        basePath = f"{path}/{self.bvid}" if basePath == None else basePath
+        basePath = f"{path}/{self.bvid}" if basePath is None else basePath
         qualityIndex = playcd["accept_quality"].index(quality)
         qualityDesc = playcd["accept_description"][qualityIndex]
         videoDash = playcd["dash"]["video"][qualityIndex]
@@ -168,7 +170,7 @@ class BilibiliVideo:
         audioUrl: str = audioDash["baseUrl"]
         audioType = audioUrl.split("?")[0].split(".")[-1:][0]
         audioPath = f"{basePath}_audio.{'mp4' if audioType=='m4s' else audioType}"
-        videoResultPath = f"{self.title if videoResultName==None else videoResultName}.mp4"
+        videoResultPath = f"{self.title if videoResultName is None else videoResultName}.mp4"
         audioDecodePath = f'{basePath}_audio_decode.aac'
         util.progresser_download(videoUrl, videoPath,
                                  isParentPath=False, header=header, isGetRequestsHead=False)
@@ -280,6 +282,48 @@ class BilibiliUser:
     @classmethod
     def analyse_cc(cls):
         BilibiliUser(BilibiliConfig.get_default_config().id).analyse()
+
+
+class BilibiliFace:
+    def __init__(self) -> None:
+        self.bilibiliUserContentDatabase: dict = {}
+        self.readIndex: int = 0
+
+    def randomGetUserContent(self) -> Tuple[str, int]:
+        while True:
+            if self.bilibiliUserContentDatabase == {}:
+                if os.path.exists("./bilibiliUserContentDatabase.json"):
+                    with open("./bilibiliUserContentDatabase.json") as f:
+                        self.bilibiliUserContentDatabase = json.loads(f.read())
+                        self.length = len(self.bilibiliUserContentDatabase)
+            if self.readIndex < self.length:
+                k = list(self.bilibiliUserContentDatabase.keys())[
+                    self.readIndex]
+                r = (self.bilibiliUserContentDatabase[k], k)
+                self.readIndex += 1
+                return r
+            time.sleep(0.05)
+            r = random.randint(1, 666666666)
+            url = f"http://api.bilibili.com/x/space/acc/info?mid={r}"
+            o = json.loads(requests.get(url, verify=False).text)
+            if o["code"] == (-404):
+                continue
+            elif o["code"] == (-412):
+                with open("./bilibiliUserContentDatabase.json", "w+") as f:
+                    f.write(json.dumps(self.bilibiliUserContentDatabase))
+                raise ValueError(o)
+            elif o["data"]["face"] == "http://i0.hdslb.com/bfs/face/member/noface.jpg":
+                continue
+            else:
+                n: str = o["data"]["name"]
+                if n.startswith("bili") or n.endswith("bili"):
+                    continue
+                if not os.path.exists(".\Face"):
+                    os.mkdir(".\Face")
+                with open(f".\Face\{r}.jpg", "wb+") as f:
+                    f.write(requests.get(o["data"]["face"]).content)
+                    self.bilibiliUserContentDatabase[r] = n
+                    return (n, r)
 
 
 cc = EasyCommandCompiler({

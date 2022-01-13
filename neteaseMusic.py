@@ -130,14 +130,14 @@ class NeteaseMusicConfigBase(BaseConfig):
             self.lastSignDate = date
             f.seek(0)
             f.truncate()
-            f.write(str(d).replace("'",'"'))
+            f.write(str(d).replace("'", '"'))
 
     def login(self, data: NeteaseMusicConfigUser):
         super().login(data)
 
     def login_cc(self, id: int, csrf: str, musicU: str):
         r = NeteaseMusicMain.neteaseMusicPost(URL_USER_GET % csrf, str(
-            {"csrf_token": csrf}), cookies=f"MUSIC_U={musicU}; __csrf={csrf}")
+            {"csrf_token":csrf}), cookies=f"MUSIC_U={musicU}; __csrf={csrf}")
         if r["account"] == None and r["profile"] == None:
             raise ValueError("账户错误")
         name = r["profile"]["nickname"]
