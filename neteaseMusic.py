@@ -138,7 +138,7 @@ class NeteaseMusicConfigBase(BaseConfig):
     def login_cc(self, id: int, csrf: str, musicU: str):
         r = NeteaseMusicMain.neteaseMusicPost(URL_USER_GET % csrf, str(
             {"csrf_token":csrf}), cookies=f"MUSIC_U={musicU}; __csrf={csrf}")
-        if r["account"] == None and r["profile"] == None:
+        if r["account"] is None and r["profile"] is None:
             raise ValueError("账户错误")
         name = r["profile"]["nickname"]
         u = NeteaseMusicConfigUser(id, self.get_all_config() == [],
@@ -171,7 +171,7 @@ NeteaseMusicConfig: NeteaseMusicConfigBase = NeteaseMusicConfigBase()
 class NeteaseMusicSong:
     def __init__(self, id: int) -> None:
         self.id = id
-        self.isVip = self.url == None
+        self.isVip = self.url is None
         v = self.get_music_detail(id)
         if v["code"] == -460:
             v = None
@@ -317,7 +317,7 @@ class NeteaseMusicUser:
     def __init__(self, id: int, config: NeteaseMusicConfigUser = None) -> None:
         self.isLogin: bool = NeteaseMusicConfig.isLogin(id)
         self.config: NeteaseMusicConfigUser = NeteaseMusicConfig.get_config(
-            id) if config == None else config
+            id) if config is None else config
         self.id = id
         r = BeautifulSoup(requests.get(URL_USER_HOME %
                                        id, headers={"cookie": self.config.toCookie()}).text, features="html.parser")
