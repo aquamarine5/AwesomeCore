@@ -1,0 +1,10 @@
+__pycache__
+.vscode
+*.json
+*.exe
+*.otf
+*.jpg
+*.png
+*.zip
+AwesomeCore_Union.py
+test.py
