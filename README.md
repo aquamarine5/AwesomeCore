@@ -17,6 +17,8 @@ AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具。
 - 通常使用`Progresser().print_slider_complex_animation_next()`来实现动态进度条
 - `Progresser().print_slider_complex_animation()`可以自定义进度条样式
 - TODO：修复ETA
+## genshin_gacha_standard
+- 将使用[sunfkny/genshin-gacha-export](https://github.com/sunfkny/genshin-gacha-export)导出的抽卡数据转换为[paimon.moe](https://paimon.moe)可以识别的`Paimon.moe Wish History Export`格式
 ## translation_v1 & v2
 ### v1
 - 仅用于`Webapi.__init__() -> "trs"`中，不推荐使用

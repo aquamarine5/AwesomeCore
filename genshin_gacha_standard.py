@@ -1,4 +1,3 @@
-from tokenize import group
 import requests
 import xlrd
 import xlwt
@@ -132,7 +131,6 @@ class genshin_gacha_export_standard():
                         roll_reset_next += roll_reset_delta
                         roll_reset_time += roll_reset_delta
                         roll_times+=1
-                    
                     rollc=1
                 else:
                     rollc = 1
