@@ -4,6 +4,7 @@
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/awesomehhhhh/AwesomeCore)]()
 [![Last commit](https://img.shields.io/github/last-commit/awesomehhhhh/AwesomeCore)]()
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/awesomehhhhh/AwesomeCore.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awesomehhhhh/AwesomeCore/context:python)  
+![Alt](https://repobeats.axiom.co/api/embed/9707861484b64816d1d6f02d50e9a63965926ef0.svg "Repobeats analytics image")  
 AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具，其中的某些工具可能不再维护。  
 # 工具列表
 - *带 &#42; 的工具在之后大概率以后将不会维护。*
