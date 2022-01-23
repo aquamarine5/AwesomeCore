@@ -29,9 +29,9 @@ AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具，
 - 将使用[sunfkny/genshin-gacha-export](https://github.com/sunfkny/genshin-gacha-export)导出的抽卡数据转换为[paimon.moe](https://paimon.moe)可以识别的`Paimon.moe Wish History Export`格式
 ## Wechat
 - 使用`PIL`生成微信首页的界面，支持输入聊天人的头像、名称、对话内容、时间
-## Translation (v1*&#42;* & v2)
+## Translation (v1 *&#42;* & v2)
 ### v1 *&#42;*
-- 仅用于`Webapi.__init__() -> "trs"`中，不推荐使用
+- 仅用于`Webapi.__init__() -> "trs"`中，不推荐使用，请使用v2版本。
 ### v2
 - `translation.translate()`可以翻译，`engine`可选'g'（google）和'b'（baidu）
 - `translation.translationLanguage`是翻译语种
