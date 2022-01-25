@@ -9,10 +9,11 @@ import datetime
 
 class genshin_gacha_export_standard():
     def __init__(self) -> None:
-        self.load_data()
+        print("Beacuse xlrd and xlwt packages only accept .xls format so please convert xlsx to xls first.")
+        self.load_data(input("sunfkny/genshin-gacha-export's export xls:"))
         self.load_i18n_data()
         self.init_paimon_data()
-        self.load_banner()
+        self.load_banner(input("一个空的paimon.moe Wish Export xls表: "))
         # -------
         for i in range(4):
             self.write_sheet(i)
@@ -26,8 +27,8 @@ class genshin_gacha_export_standard():
         self.i18n_cn_data: dict = requests.get(
             character_weapon_i18n_cn_url).json()
 
-    def load_data(self):
-        genshin_gacha_export_data = r"C:\Users\44319\Downloads\genshin-gacha-export\gachaExport-20220121151121.xls"
+    def load_data(self,path):
+        genshin_gacha_export_data = path
         self.export_excel: book.Book = xlrd.open_workbook(
             genshin_gacha_export_data)
 
@@ -59,8 +60,8 @@ class genshin_gacha_export_standard():
         add_banner_headers(self.paimon_excel.add_sheet("Banner List", True))
         add_info_headers(self.paimon_excel.add_sheet("Information", True))
 
-    def load_banner(self):
-        paimon_demo_path = r"C:\Users\44319\Downloads\paimonmoe_wish_history.xls"
+    def load_banner(self,path):
+        paimon_demo_path = path
         paimon_demo_excel: book.Book = xlrd.open_workbook(paimon_demo_path)
         paimon_demo_sheet: sheet.Sheet = paimon_demo_excel.sheet_by_index(4)
         self.banner_list = []
