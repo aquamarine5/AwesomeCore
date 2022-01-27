@@ -12,12 +12,17 @@ class genshin_gacha_export_standard():
         print("Beacuse xlrd and xlwt packages only accept .xls format so please convert xlsx to xls first.")
         self.load_data(input("sunfkny/genshin-gacha-export's export xls:"))
         self.load_i18n_data()
+        self.load_paimon_moe_i18n_data()
         self.init_paimon_data()
         self.load_banner(input("一个空的paimon.moe Wish Export xls表: "))
         # -------
         for i in range(4):
             self.write_sheet(i)
         self.paimon_excel.save(r"D:/result.xls")
+
+    def load_paimon_moe_i18n_data(self):
+        github_link = "https://raw.githubusercontent.com/MadeBaruna/paimon-moe/main/src/locales/items/zh.json"
+        self.paimon_moe_i18n: dict = requests.get(github_link).json()
 
     def load_i18n_data(self):
         character_weapon_i18n_en_url = "https://webstatic.mihoyo.com/admin/mi18n/hk4e_cn/20190926_5d8c80193de82/20190926_5d8c80193de82-en-us.json"
@@ -27,13 +32,13 @@ class genshin_gacha_export_standard():
         self.i18n_cn_data: dict = requests.get(
             character_weapon_i18n_cn_url).json()
 
-    def load_data(self,path):
+    def load_data(self, path):
         genshin_gacha_export_data = path
         self.export_excel: book.Book = xlrd.open_workbook(
             genshin_gacha_export_data)
 
     def init_paimon_data(self):
-        def add_gacha_headers(sheet: wsheet):
+        def add_gacha_headers(sheet: wsheet.Worksheet):
             sheet.write(0, 0, "Type")
             sheet.write(0, 1, "Name")
             sheet.write(0, 2, "Time")
@@ -43,10 +48,10 @@ class genshin_gacha_export_standard():
             sheet.write(0, 6, "Group")
             sheet.write(0, 7, "Banner")
 
-        def add_banner_headers(sheet: wsheet):
+        def add_banner_headers(sheet: wsheet.Worksheet):
             pass  # Please by hand, sorrrrry~
 
-        def add_info_headers(sheet: wsheet):
+        def add_info_headers(sheet: wsheet.Worksheet):
             sheet.write(0, 0, "Paimon.moe Wish History Export")
             sheet.write(1, 0, "Version")
             sheet.write(1, 1, "3")
@@ -60,7 +65,7 @@ class genshin_gacha_export_standard():
         add_banner_headers(self.paimon_excel.add_sheet("Banner List", True))
         add_info_headers(self.paimon_excel.add_sheet("Information", True))
 
-    def load_banner(self,path):
+    def load_banner(self, path):
         paimon_demo_path = path
         paimon_demo_excel: book.Book = xlrd.open_workbook(paimon_demo_path)
         paimon_demo_sheet: sheet.Sheet = paimon_demo_excel.sheet_by_index(4)
@@ -144,11 +149,16 @@ class genshin_gacha_export_standard():
             else:
                 rollc = roll_count+1
                 roll_count += 1
-            try:
-                trsed_name = list(self.i18n_en_data.values())[
-                    list(self.i18n_cn_data.values()).index(name)].replace("Raincutter", "Rainslasher").replace("Jade Orb", "Emerald Orb")
-            except ValueError:
-                trsed_name = i18n_newer[name]
+            # By Mihoyo database translation
+            # try:
+            #    trsed_name = list(self.i18n_en_data.values())[
+            #        list(self.i18n_cn_data.values()).index(name)].replace("Raincutter", "Rainslasher").replace("Jade Orb", "Emerald Orb")
+            # except ValueError:
+            #    trsed_name = i18n_newer[name]
+            # -------------------------
+            # By Paimon.moe translation
+            trsed_name = list(self.paimon_moe_i18n.keys())[
+                list(self.paimon_moe_i18n.values()).index(name)]
             trsed_type = i18n_type[type]
             if star == 3:
                 pity_count += 1

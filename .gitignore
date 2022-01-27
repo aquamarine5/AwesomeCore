@@ -7,4 +7,4 @@ __pycache__
 *.png
 *.zip
 AwesomeCore_Union.py
-test.py
+test/
