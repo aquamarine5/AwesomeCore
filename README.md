@@ -9,12 +9,14 @@ AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具，
 # 工具列表
 - *带 &#42; 的工具在之后大概率以后将不会维护。*
 ## NeteaseMusic
+<!--
 - 支持通过网易云的加密算法（AES，最后有params和encSecKey）进行POST （`NeteaseMusicMain.neteaseMusicEncrypt()`）
 - 下载音乐（128kbps）（`NeteaseMusicSong(id).download()`）以及可选的附带元数据版本（`NeteaseMusicSong(id).download_with_metadata()`）
 - 下载专辑或歌单的全部音乐（`NeteaseMusicWebLoader(id).download_all()`）
 - 扫码登录获取cookies（`NeteaseMusicUser.login()`）
 - **分析每周/全部所听歌曲（每首歌听了多少次，一共听了多久，这周多少时间在听歌）（`NeteaseMusicUser().analyse()` & `NeteaseMusicUser().alltime()`）**
-- 签到（`NeteaseMusicUser().sign()`）
+- 签到（`NeteaseMusicUser().sign()`）-->
+- 已单独拆分至[aquamarine5/NeteaseMusicUtil](https://github.com/aquamarine5/NeteaseMusicUtil)
 ## Progress
 - 主要为`Progress.Progresser`类，使用`Progress.Progresser(length)`指定进度条长度
 - 通常使用`Progresser().print_slider_complex_animation_next()`来实现动态进度条
