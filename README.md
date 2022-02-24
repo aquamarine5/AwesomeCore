@@ -25,6 +25,12 @@ AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具，
 - bv号转av号
 - 分析最近看的b站视频总时长
 - 随机获取用户头像
+## dingtalk_likes_creater
+- 钉钉直播课堂全自动刷赞机，即使禁用了点赞也是可以用这个工具刷赞的啦
+- 使用方法：dingtalk_likes_creater.py `<count>` `<threads>` `<liveUUID>`
+- `count`参数为每个线程执行的发送的点赞请求数，发送一个点赞请求客户端会收到100赞
+- `threads`为执行点赞请求的线程数，每个线程都执行`count`次点赞请求，故最后总点赞量 = `count * threads * 100`
+- `liveUUID`为直播的UUID，推荐[Fiddler](https://www.telerik.com/fiddler)爬取
 ## genshin_gacha_standard
 - 将使用[sunfkny/genshin-gacha-export](https://github.com/sunfkny/genshin-gacha-export)导出的抽卡数据转换为[paimon.moe](https://paimon.moe)可以识别的`Paimon.moe Wish History Export`格式
 ## Wechat
@@ -49,8 +55,7 @@ CommandCompiler({
 - 简易的用户数据存储类
 ## FFmpeg
 - 下载、绑定、调用FFMpeg
-## Leet-code
-- 难是真难
-- Reference: [力扣](leetcode-cn.com)
+## Leet-code *&#42;*
+- 难是真难 Reference: [力扣](leetcode-cn.com)
 ## Webapi *&#42;*
 - 详见[awesomehhhhh/AwesomeBot](github.com/awesomehhhhh/AwesomeBot)
