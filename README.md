@@ -28,6 +28,7 @@ AwesomeCore是一些小工具集，有作者平时或偶尔会用到的工具，
 - 分析最近看的b站视频总时长
 - 随机获取用户头像
 ## dingtalk_likes_creater
+- **Updated on 2020-04-07: 此工具已经不可用**
 - 钉钉直播课堂全自动刷赞机，即使禁用了点赞也是可以用这个工具刷赞的啦
 - 使用方法：dingtalk_likes_creater.py `<count>` `<threads>` `<liveUUID>`
 - `count`参数为每个线程执行的发送的点赞请求数，发送一个点赞请求客户端会收到100赞
